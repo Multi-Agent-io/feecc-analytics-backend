@@ -53,6 +53,8 @@ class ProtocolData(Protocol):
     associated_unit_id: str
     status: ProtocolStatus = ProtocolStatus.first
     creation_time: datetime = Field(default_factory=datetime.now)
+    ipfs_cid: tp.Optional[str] = None
+    txn_hash: tp.Optional[str] = None
 
 
 class ProtocolOut(GenericResponse):
@@ -67,3 +69,10 @@ class ProtocolsOut(GenericResponse):
 
 class TypesOut(GenericResponse):
     data: tp.List[str]
+
+
+class IPFSGatewayResponse(BaseModel):
+    status: int
+    details: str
+    ipfs_cid: tp.Optional[str] = None
+    ipfs_link: tp.Optional[str] = None
