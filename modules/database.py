@@ -651,6 +651,9 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         protocol = await self.get_concrete_protocol(internal_id=internal_id)
         if not protocol:
             raise ValueError(f"Protocol {internal_id=} not found. Can't append hashes")
-        protocol.ipfs_cid = ipfs_cid
-        protocol.txn_hash = txn_hash
-        await self.update_protocol(protocol_data=protocol)
+        if not protocol.ipfs_cid and ipfs_cid:
+            protocol.ipfs_cid = ipfs_cid
+        if not protocol.txn_hash and txn_hash:
+            protocol.txn_hash = txn_hash
+        if ipfs_cid or txn_hash:
+            await self.update_protocol(protocol_data=protocol)

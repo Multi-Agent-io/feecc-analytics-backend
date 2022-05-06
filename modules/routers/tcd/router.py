@@ -1,11 +1,11 @@
 import os
 import typing as tp
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from loguru import logger
 from modules.models import User
 
-from modules.routers.tcd.utils import post_to_datalog, push_to_ipfs_gateway
+from modules.routers.tcd.utils import post_ipfs_cid_to_datalog, push_to_ipfs_gateway
 
 from ...database import MongoDbWrapper
 from ...dependencies.filters import parse_tcd_filters
@@ -81,7 +81,9 @@ async def handle_protocol_update(protocol: ProtocolData = Depends(handle_protoco
 
 
 @router.post("/protocols/{internal_id}/approve", response_model=GenericResponse)
-async def approve_protocol(internal_id: str, user: User = Depends(get_current_user)) -> GenericResponse:
+async def approve_protocol(
+    internal_id: str, background_tasks: BackgroundTasks, user: User = Depends(get_current_user)
+) -> GenericResponse:
     """Endpoint to approve protocol (if unit already passed any checks)"""
     try:
         await MongoDbWrapper().approve_protocol(internal_id=internal_id)
@@ -92,10 +94,7 @@ async def approve_protocol(internal_id: str, user: User = Depends(get_current_us
             response = await push_to_ipfs_gateway(protocol=protocol, username=user.username)
             ipfs_hash = response.ipfs_cid
             if ipfs_hash:
-                txn_hash = await post_to_datalog(ipfs_hash)
-            await MongoDbWrapper().append_hashes_to_protocol(
-                internal_id=internal_id, ipfs_cid=ipfs_hash, txn_hash=txn_hash
-            )
+                background_tasks.add_task(post_ipfs_cid_to_datalog, internal_id, ipfs_hash)
     except Exception as exception_message:
         logger.error(f"Can't approve protocol for unit {internal_id}. Exception: {exception_message}")
         raise DatabaseException(detail=exception_message)
