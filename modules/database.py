@@ -107,11 +107,9 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         query = {key: value}
 
         if multiple:
-            result = await collection_.delete_many(query)
+            await collection_.delete_many(query)
         else:
-            result = await collection_.find_one_and_delete(query)
-
-        logger.debug(f"deleted {result.deleted_count} documents by query {query}")
+            await collection_.find_one_and_delete(query)
 
     @staticmethod
     async def _update_document_in_collection(
@@ -480,6 +478,11 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     async def remove_protocol(self, internal_id: str) -> None:
         """remove protocol from database"""
+        passport = await self.get_concrete_passport(internal_id=internal_id)
+        if not passport:
+            raise ValueError(f"Can't remove protocol for nonexistent unit {internal_id}")
+        if passport.status in [UnitStatus.finalized, UnitStatus.approved]:
+            await self.update_passport_status(internal_id=internal_id, status=UnitStatus.built)
         await self._remove_document_from_collection(
             self._protocols_data_collection, key="associated_unit_id", value=internal_id
         )
