@@ -5,7 +5,7 @@ RUN pip install poetry
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-FROM python:3.9-slim-buster
+FROM python:3.9
 RUN apt update
 WORKDIR /feecc-analytics-backend/
 COPY --from=requirements-stage /tmp/requirements.txt /requirements.txt
