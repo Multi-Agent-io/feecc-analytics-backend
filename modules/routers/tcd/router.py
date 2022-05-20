@@ -20,7 +20,7 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/protocols", response_model=ProtocolsOut)
-async def get_protocols(filter: Filter = Depends(parse_tcd_filters)) -> ProtocolsOut:
+async def get_protocols(page: int = 1, items: int = 20, filter: Filter = Depends(parse_tcd_filters)) -> ProtocolsOut:
     """
     Endpoint to get all issued protocols from database.
     You can't receive empty protocol templates here
@@ -30,7 +30,7 @@ async def get_protocols(filter: Filter = Depends(parse_tcd_filters)) -> Protocol
     except Exception as exception_message:
         logger.warning(f"Can't get all protocols from DB. Filter: {filter}")
         raise DatabaseException(error=exception_message)
-    return ProtocolsOut(data=protocols)
+    return ProtocolsOut(data=protocols[(page - 1) * items : page * items])
 
 
 @router.get("/protocols/types")

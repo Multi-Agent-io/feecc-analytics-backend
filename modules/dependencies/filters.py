@@ -1,7 +1,6 @@
 import datetime
 import typing as tp
 
-from pydantic import Field
 
 from modules.routers.tcd.models import ProtocolStatus
 from modules.routers.passports.models import UnitStatus
@@ -51,7 +50,7 @@ async def parse_tcd_filters(
         clear_filter["status"] = status
 
     if name:
-        clear_filter["protocol_name"] = {"$regex" : name}
+        clear_filter["protocol_name"] = {"$regex": name}
 
     if date is not None:
         start, end = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)
