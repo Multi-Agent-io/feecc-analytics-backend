@@ -27,7 +27,7 @@ class Passport(BaseModel):
     internal_id: str
     passport_short_url: tp.Optional[str]
     passport_ipfs_cid: tp.Optional[str] = None
-    is_in_db: tp.Optional[bool] = None
+    is_in_db: tp.Optional[bool]
     featured_in_int_id: tp.Optional[str]
     biography: tp.Optional[tp.List[ProductionStageData]]
     components_internal_ids: tp.Optional[tp.List[str]]

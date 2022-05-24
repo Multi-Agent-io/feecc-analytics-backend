@@ -22,7 +22,7 @@ class ProductionStage(BaseModel):
     video_hashes: tp.Optional[tp.List[str]]
     additional_info: tp.Optional[tp.Dict[tp.Any, tp.Any]]
     id: str = Field(default_factory=lambda: uuid4().hex)
-    is_in_db: bool
+    is_in_db: tp.Optional[bool]
     creation_time: datetime
     schema_stage_id: tp.Optional[str]
 

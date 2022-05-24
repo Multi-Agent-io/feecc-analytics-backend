@@ -35,7 +35,12 @@ async def post_ipfs_cid_to_datalog(internal_id: str, ipfs_cid: str) -> None:
 async def push_to_ipfs_gateway(protocol: ProtocolData, username: str) -> IPFSGatewayResponse:
     """Push protocol to IPFS Gateway, returns IPFS Hash and Robonomics substrate TXN Hash"""
     logger.info(f"Pushing protocol {protocol.protocol_id} to IPFS and Robonomics datalog")
-    protocol_raw = {"file_data": await convert_protocol(protocol=protocol, exclude_fields={"txn_hash", "ipfs_cid"})}
+    protocol_raw = {
+        "file_data": (
+            f"protocol-{protocol.protocol_id}.json",
+            await convert_protocol(protocol=protocol, exclude_fields={"txn_hash", "ipfs_cid"}),
+        )
+    }
     try:
         if not IPFS_GATEWAY_HOST:
             raise ValueError("IPFS_GATEWAY_HOST not provided")
