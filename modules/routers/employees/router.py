@@ -66,7 +66,7 @@ async def patch_employee(rfid_card_id: str, new_data: Employee) -> GenericRespon
 async def decode_existing_employee(encoded_employee: EncodedEmployee) -> EmployeeOut:
     """Decode an employee by encoded name"""
     try:
-        employee = await MongoDbWrapper().decode_employee(encoded_employee.encoded_name)
+        employee = await MongoDbWrapper().get_concrete_employee(encoded_employee.encoded_name)
     except Exception as exception_message:
         raise DatabaseException(error=exception_message)
     return EmployeeOut(employee=employee)

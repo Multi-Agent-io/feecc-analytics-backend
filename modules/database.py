@@ -233,6 +233,13 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             return None
         return ProtocolData(**protocol)
 
+    async def get_concrete_employee(self, passport_code: str) -> tp.Optional[Employee]:
+        """retrieves information about employee by passport code"""
+        employee = await self._get_element_by_key(self._employee_collection, key="passport_code", value=passport_code)
+        if not employee:
+            return None
+        return Employee(**employee)
+
     async def get_passport_creation_date(self, uuid: str) -> tp.Optional[datetime.datetime]:
         try:
             return (
