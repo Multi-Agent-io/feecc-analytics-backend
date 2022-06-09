@@ -6,8 +6,6 @@ from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorCursor
 from pydantic import BaseModel
 
-from modules.cacher import RedisCacher
-
 from modules.routers.users.models import UserWithPassword
 from modules.routers.employees.models import Employee
 from modules.routers.passports.models import Passport, UnitStatus
@@ -48,8 +46,6 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         self._protocols_data_collection: AsyncIOMotorCollection = self._database["protocolsData"]
 
         logger.info("Connected to MongoDB")
-
-        self._cacher: RedisCacher = RedisCacher()
 
     @staticmethod
     async def _remove_ids(cursor: AsyncIOMotorCursor) -> tp.List[tp.Dict[str, tp.Any]]:
