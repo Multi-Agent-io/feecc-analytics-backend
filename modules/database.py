@@ -134,21 +134,6 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             raise ValueError(f"Expected filter and new_data, got {filter}:{new_data}")
         await collection.find_one_and_update(filter, {"$set": new_data})
 
-    async def decode_employee(self, hashed_employee: str) -> tp.Optional[Employee]:
-        """Find an employee by hashed data"""
-        employee = await self._cacher.get_employee(hashed_employee)
-        if employee is not None:
-            return employee
-
-        employees = await self.get_all_employees()
-        await self._cacher.cache_employees(employees)
-
-        employee = await self._cacher.get_employee(hashed_employee)
-        if employee is not None:
-            return employee
-
-        return None
-
     async def get_internal_id_by_uuid(self, uuid: str) -> str:
         """Get internal id by given uuid"""
         passport = await self.get_concrete_passport(uuid=uuid)
@@ -168,13 +153,6 @@ class MongoDbWrapper(metaclass=SingletonMeta):
                 continue
             int_ids.append(passport.internal_id)
         return int_ids
-
-    async def get_concrete_employee(self, card_id: str) -> tp.Optional[Employee]:
-        """retrieves an employee by card_id"""
-        employee = await self._get_element_by_key(self._employee_collection, key="rfid_card_id", value=card_id)
-        if not employee:
-            return None
-        return Employee(**employee)
 
     async def get_concrete_passport(
         self, internal_id: tp.Optional[str] = None, uuid: tp.Optional[str] = None
@@ -229,9 +207,18 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             return None
         return ProtocolData(**protocol)
 
-    async def get_concrete_employee(self, passport_code: str) -> tp.Optional[Employee]:
-        """retrieves information about employee by passport code"""
-        employee = await self._get_element_by_key(self._employee_collection, key="passport_code", value=passport_code)
+    async def get_concrete_employee(
+        self, passport_code: tp.Optional[str] = None, card_id: tp.Optional[str] = None
+    ) -> tp.Optional[Employee]:
+        """retrieves information about employee by passport code or card_id"""
+        if not (passport_code or card_id):
+            raise ValueError("no passport_code or card_id specified")
+        if passport_code:
+            employee = await self._get_element_by_key(
+                self._employee_collection, key="passport_code", value=passport_code
+            )
+        if card_id:
+            employee = await self._get_element_by_key(self._employee_collection, key="rfid_card_id", value=card_id)
         if not employee:
             return None
         return Employee(**employee)
@@ -287,7 +274,8 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         )
         types = set(schema.schema_type for schema in schemas)
         # XXX: Field for testing purposes
-        types.remove("Testing")
+        if "Testing" in types:
+            types.remove("Testing")
         return types
 
     async def get_all_protocol_prototypes(self) -> tp.List[Protocol]:
