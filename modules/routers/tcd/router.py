@@ -13,7 +13,7 @@ from ...dependencies.handlers import handle_protocol
 from ...dependencies.security import get_current_employee, get_current_user
 from ...exceptions import DatabaseException
 from ...types import Filter
-from .models import GenericResponse, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut
+from .models import GenericResponse, PendingProtocolsOut, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut
 from modules.routers.employees.models import Employee
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -40,6 +40,17 @@ async def get_protocols_types() -> TypesOut:
     return TypesOut(data=types)
 
 
+@router.get("/protocols/pending", response_model=PendingProtocolsOut)
+async def get_pending_protocols() -> PendingProtocolsOut:
+    """Get lists of all protocols ids pending approval"""
+    try:
+        pending = await MongoDbWrapper().get_pending_protocols()
+    except Exception as exception_message:
+        logger.error(f"Can't get pending protocols. {exception_message}")
+        raise DatabaseException(detail=exception_message)
+    return PendingProtocolsOut(count=len(pending) if pending else 0, pending=pending)
+
+
 @router.get("/protocols/{internal_id}")
 async def get_concrete_protocol(internal_id: str, employee: Employee = Depends(get_current_employee)) -> ProtocolOut:
     """
@@ -63,7 +74,7 @@ async def get_concrete_protocol(internal_id: str, employee: Employee = Depends(g
     return ProtocolOut(serial_number=unit.serial_number, employee=employee, protocol=protocol)
 
 
-@router.post("/protocols/{internal_id}")
+@router.post("/protocols/{internal_id}", response_model=GenericResponse)
 async def handle_protocol_update(protocol: ProtocolData = Depends(handle_protocol)) -> GenericResponse:
     """
     Endpoint to handle protocol events. If unit don't have issued protocol, it'll be created
@@ -110,5 +121,4 @@ async def remove_protocol(internal_id: str) -> GenericResponse:
     except Exception as exception_message:
         logger.error(f"Can't remove protocol for unit {internal_id}. Exception: {exception_message}")
         raise DatabaseException(detail=exception_message)
-
     return GenericResponse()

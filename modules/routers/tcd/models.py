@@ -76,3 +76,8 @@ class IPFSGatewayResponse(BaseModel):
     details: str
     ipfs_cid: tp.Optional[str] = None
     ipfs_link: tp.Optional[str] = None
+
+
+class PendingProtocolsOut(GenericResponse):
+    count: int
+    pending: tp.List[str]

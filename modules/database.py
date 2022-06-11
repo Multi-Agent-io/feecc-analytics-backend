@@ -651,3 +651,18 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             protocol.txn_hash = txn_hash
         if ipfs_cid or txn_hash:
             await self.update_protocol(protocol_data=protocol)
+
+    async def get_pending_protocols(self) -> tp.List[ProtocolData]:
+        """retrieve protocols ids that were issued 2 days ago but have not been confirmed yet"""
+        today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        date_notify = today - datetime.timedelta(2)
+        pending_protocols_filter = {
+            "creation_time": {"$lte": date_notify},
+            "status": {"$in": [ProtocolStatus.first, ProtocolStatus.second]},
+        }
+        return await self._get_all_from_collection(
+            self._protocols_data_collection,
+            model_=ProtocolData,
+            filter=pending_protocols_filter,
+            include_only="protocol_id",
+        )
