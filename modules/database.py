@@ -6,8 +6,6 @@ from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorCursor
 from pydantic import BaseModel
 
-from modules.cacher import RedisCacher
-
 from modules.routers.users.models import UserWithPassword
 from modules.routers.employees.models import Employee
 from modules.routers.passports.models import Passport, UnitStatus
@@ -48,8 +46,6 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         self._protocols_data_collection: AsyncIOMotorCollection = self._database["protocolsData"]
 
         logger.info("Connected to MongoDB")
-
-        self._cacher: RedisCacher = RedisCacher()
 
     @staticmethod
     async def _remove_ids(cursor: AsyncIOMotorCursor) -> tp.List[tp.Dict[str, tp.Any]]:
@@ -97,7 +93,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     @staticmethod
     async def _remove_document_from_collection(
-        collection_: AsyncIOMotorCollection, key: str, value: str, multiple: tp.Optional[bool] = None
+        collection_: AsyncIOMotorCollection, key: str, value: str, multiple: bool = False
     ) -> None:
         """
         Remove document from collection by {key:value}.
@@ -107,11 +103,9 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         query = {key: value}
 
         if multiple:
-            result = await collection_.delete_many(query)
+            await collection_.delete_many(query)
         else:
-            result = await collection_.find_one_and_delete(query)
-
-        logger.debug(f"deleted {result.deleted_count} documents by query {query}")
+            await collection_.find_one_and_delete(query)
 
     @staticmethod
     async def _update_document_in_collection(
@@ -140,21 +134,6 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             raise ValueError(f"Expected filter and new_data, got {filter}:{new_data}")
         await collection.find_one_and_update(filter, {"$set": new_data})
 
-    async def decode_employee(self, hashed_employee: str) -> tp.Optional[Employee]:
-        """Find an employee by hashed data"""
-        employee = await self._cacher.get_employee(hashed_employee)
-        if employee is not None:
-            return employee
-
-        employees = await self.get_all_employees()
-        await self._cacher.cache_employees(employees)
-
-        employee = await self._cacher.get_employee(hashed_employee)
-        if employee is not None:
-            return employee
-
-        return None
-
     async def get_internal_id_by_uuid(self, uuid: str) -> str:
         """Get internal id by given uuid"""
         passport = await self.get_concrete_passport(uuid=uuid)
@@ -175,26 +154,23 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             int_ids.append(passport.internal_id)
         return int_ids
 
-    async def get_concrete_employee(self, card_id: str) -> tp.Optional[Employee]:
-        """retrieves an employee by card_id"""
-        employee = await self._get_element_by_key(self._employee_collection, key="rfid_card_id", value=card_id)
-        if not employee:
-            return None
-        return Employee(**employee)
-
     async def get_concrete_passport(
         self, internal_id: tp.Optional[str] = None, uuid: tp.Optional[str] = None
     ) -> tp.Optional[Passport]:
         """retrieves unit by its internal id or uuid"""
-        if internal_id and uuid:
+        if not (internal_id or uuid):
             raise ValueError("Unit search only available by uuid or internal_id")
         if internal_id:
             passport = await self._get_element_by_key(self._unit_collection, key="internal_id", value=internal_id)
+            if not passport:
+                return None
+            return Passport(**passport)
         if uuid:
             passport = await self._get_element_by_key(self._unit_collection, key="uuid", value=uuid)
-        if not passport:
-            return None
-        return Passport(**passport)
+            if not passport:
+                return None
+            return Passport(**passport)
+        return None
 
     async def get_concrete_stage(self, stage_id: str) -> tp.Optional[ProductionStage]:
         """retrieves production stage by its id"""
@@ -215,6 +191,8 @@ class MongoDbWrapper(metaclass=SingletonMeta):
     async def get_concrete_schema(self, schema_id: str) -> ProductionSchema:
         """retrieves information about production schema"""
         schema = await self._get_element_by_key(self._schemas_collection, key="schema_id", value=schema_id)
+        if not schema:
+            raise ValueError(f"No schema for unit {schema_id}")
         return ProductionSchema(**schema)
 
     async def get_concrete_protocol_prototype(self, associated_with_schema_id: str) -> tp.Optional[Protocol]:
@@ -234,6 +212,26 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         if not protocol:
             return None
         return ProtocolData(**protocol)
+
+    async def get_concrete_employee(
+        self, passport_code: tp.Optional[str] = None, card_id: tp.Optional[str] = None
+    ) -> tp.Optional[Employee]:
+        """retrieves information about employee by passport code or card_id"""
+        if not (passport_code or card_id):
+            raise ValueError("no passport_code or card_id specified")
+        if passport_code:
+            employee = await self._get_element_by_key(
+                self._employee_collection, key="passport_code", value=passport_code
+            )
+            if employee:
+                return Employee(**employee)
+            return None
+        if card_id:
+            employee = await self._get_element_by_key(self._employee_collection, key="rfid_card_id", value=card_id)
+            if employee:
+                return Employee(**employee)
+            return None
+        return None
 
     async def get_passport_creation_date(self, uuid: str) -> tp.Optional[datetime.datetime]:
         try:
@@ -286,7 +284,8 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         )
         types = set(schema.schema_type for schema in schemas)
         # XXX: Field for testing purposes
-        types.remove("Testing")
+        if "Testing" in types:
+            types.remove("Testing")
         return types
 
     async def get_all_protocol_prototypes(self) -> tp.List[Protocol]:
@@ -480,19 +479,22 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     async def remove_protocol(self, internal_id: str) -> None:
         """remove protocol from database"""
+        passport = await self.get_concrete_passport(internal_id=internal_id)
+        if not passport:
+            raise ValueError(f"Can't remove protocol for nonexistent unit {internal_id}")
+        if passport.status in [UnitStatus.finalized, UnitStatus.approved]:
+            await self.update_passport_status(internal_id=internal_id, status=UnitStatus.built)
         await self._remove_document_from_collection(
             self._protocols_data_collection, key="associated_unit_id", value=internal_id
         )
 
     async def edit_schema(self, schema_id: str, new_schema_data: ProductionSchema) -> None:
         """edit single production stage schema by its schema_id"""
-        await self._update_document_in_collection(
-            self._schemas_collection,
-            key="schema_id",
-            value=schema_id,
-            new_data=new_schema_data,
-            exclude={"schema_id", "parent_schema_id", "required_components_schema_ids"},
-        )
+        data = new_schema_data.dict()
+        data["schema_id"] = schema_id
+        del data["parent_schema_id"]
+        del data["required_components_schema_ids"]
+        await self._update_document(self._schemas_collection, filter={"schema_id": schema_id}, new_data=data)
 
     async def edit_user(self, username: str, new_user_data: UserWithPassword) -> None:
         """edit concrete user's data"""
@@ -549,9 +551,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     async def update_protocol(self, protocol_data: ProtocolData) -> None:
         """update information about concrete protocol (if exists)"""
-        logger.info(
-            f"Updating protocol {protocol_data.protocol_id} for unit {protocol_data.associated_unit_id}. Data: {protocol_data.dict()}"
-        )
+        logger.info(f"Updating protocol {protocol_data.protocol_id} for unit {protocol_data.associated_unit_id}")
         await self._update_document(
             self._protocols_data_collection,
             filter={"associated_unit_id": protocol_data.associated_unit_id},
@@ -643,3 +643,34 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             )
 
         await self.edit_stage(stage_id=stage_id, new_stage_data=stage)
+
+    async def append_hashes_to_protocol(
+        self, internal_id: str, ipfs_cid: tp.Optional[str] = None, txn_hash: tp.Optional[str] = None
+    ) -> None:
+        """Append IPFS and Robonomics TXN hash to protocol"""
+        logger.info(f"Updating IPFS CID and Robonomics TXN hash for protocol {internal_id}.")
+        logger.debug(f"Hashes for protocol {internal_id}: {txn_hash=}, {ipfs_cid=}")
+        protocol = await self.get_concrete_protocol(internal_id=internal_id)
+        if not protocol:
+            raise ValueError(f"Protocol {internal_id=} not found. Can't append hashes")
+        if not protocol.ipfs_cid and ipfs_cid:
+            protocol.ipfs_cid = ipfs_cid
+        if not protocol.txn_hash and txn_hash:
+            protocol.txn_hash = txn_hash
+        if ipfs_cid or txn_hash:
+            await self.update_protocol(protocol_data=protocol)
+
+    async def get_pending_protocols(self) -> tp.List[ProtocolData]:
+        """retrieve protocols ids that were issued 2 days ago but have not been confirmed yet"""
+        today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        date_notify = today - datetime.timedelta(2)
+        pending_protocols_filter = {
+            "creation_time": {"$lte": date_notify},
+            "status": {"$in": [ProtocolStatus.first, ProtocolStatus.second]},
+        }
+        return await self._get_all_from_collection(
+            self._protocols_data_collection,
+            model_=ProtocolData,
+            filter=pending_protocols_filter,
+            include_only="protocol_id",
+        )

@@ -33,11 +33,11 @@ async def get_concrete_production_schema(schema_id: str) -> tp.Union[ProductionS
     """
     try:
         schema = await MongoDbWrapper().get_concrete_schema(schema_id)
-    except Exception as exception_message:
-        raise DatabaseException(error=exception_message)
-    if schema is None:
-        return GenericResponse(status_code=404, detail="Not found")
-    return ProductionSchemaOut(schema=schema)
+    except ValueError as e:
+        return GenericResponse(status_code=404, detail=f"Not found: {e}")
+    except Exception as e:
+        raise DatabaseException(error=e)
+    return ProductionSchemaOut(prod_schema=schema)
 
 
 @router.post("/", response_model=GenericResponse, dependencies=[Depends(check_user_permissions)])

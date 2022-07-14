@@ -13,6 +13,7 @@ class Employee(BaseModel):
     rfid_card_id: str
     name: str
     position: str
+    passport_code: tp.Optional[str] = None
 
     async def compose(self) -> str:
         return " ".join([self.rfid_card_id, self.name, self.position])

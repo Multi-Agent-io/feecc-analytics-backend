@@ -1,7 +1,11 @@
+import os
 import typing as tp
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from loguru import logger
+from modules.models import User
+
+from modules.routers.tcd.utils import post_ipfs_cid_to_datalog, push_to_ipfs_gateway
 
 from ...database import MongoDbWrapper
 from ...dependencies.filters import parse_tcd_filters
@@ -9,14 +13,14 @@ from ...dependencies.handlers import handle_protocol
 from ...dependencies.security import get_current_employee, get_current_user
 from ...exceptions import DatabaseException
 from ...types import Filter
-from .models import GenericResponse, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut
+from .models import GenericResponse, PendingProtocolsOut, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut
 from modules.routers.employees.models import Employee
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/protocols", response_model=ProtocolsOut)
-async def get_protocols(filter: Filter = Depends(parse_tcd_filters)) -> ProtocolsOut:
+async def get_protocols(page: int = 1, items: int = 20, filter: Filter = Depends(parse_tcd_filters)) -> ProtocolsOut:
     """
     Endpoint to get all issued protocols from database.
     You can't receive empty protocol templates here
@@ -26,7 +30,7 @@ async def get_protocols(filter: Filter = Depends(parse_tcd_filters)) -> Protocol
     except Exception as exception_message:
         logger.warning(f"Can't get all protocols from DB. Filter: {filter}")
         raise DatabaseException(error=exception_message)
-    return ProtocolsOut(data=protocols)
+    return ProtocolsOut(data=protocols[(page - 1) * items : page * items])
 
 
 @router.get("/protocols/types")
@@ -34,6 +38,17 @@ async def get_protocols_types() -> TypesOut:
     """Endpoint to get all possible protocol stages (types)"""
     types = ["Первая стадия испытаний пройдена", "Вторая стадия испытаний пройдена", "Протокол утверждён"]
     return TypesOut(data=types)
+
+
+@router.get("/protocols/pending", response_model=PendingProtocolsOut)
+async def get_pending_protocols() -> PendingProtocolsOut:
+    """Get lists of all protocols ids pending approval"""
+    try:
+        pending = await MongoDbWrapper().get_pending_protocols()
+    except Exception as exception_message:
+        logger.error(f"Can't get pending protocols. {exception_message}")
+        raise DatabaseException(detail=exception_message)
+    return PendingProtocolsOut(count=len(pending) if pending else 0, pending=pending)
 
 
 @router.get("/protocols/{internal_id}")
@@ -59,7 +74,7 @@ async def get_concrete_protocol(internal_id: str, employee: Employee = Depends(g
     return ProtocolOut(serial_number=unit.serial_number, employee=employee, protocol=protocol)
 
 
-@router.post("/protocols/{internal_id}")
+@router.post("/protocols/{internal_id}", response_model=GenericResponse)
 async def handle_protocol_update(protocol: ProtocolData = Depends(handle_protocol)) -> GenericResponse:
     """
     Endpoint to handle protocol events. If unit don't have issued protocol, it'll be created
@@ -77,10 +92,20 @@ async def handle_protocol_update(protocol: ProtocolData = Depends(handle_protoco
 
 
 @router.post("/protocols/{internal_id}/approve", response_model=GenericResponse)
-async def approve_protocol(internal_id: str) -> GenericResponse:
+async def approve_protocol(
+    internal_id: str, background_tasks: BackgroundTasks, user: User = Depends(get_current_user)
+) -> GenericResponse:
     """Endpoint to approve protocol (if unit already passed any checks)"""
     try:
         await MongoDbWrapper().approve_protocol(internal_id=internal_id)
+        protocol = await MongoDbWrapper().get_concrete_protocol(internal_id=internal_id)
+        if not protocol:
+            raise ValueError(f"Protocol {internal_id} not found")
+        if eval(os.getenv("USE_DATALOG", "False")):
+            response = await push_to_ipfs_gateway(protocol=protocol, username=user.username)
+            ipfs_hash = response.ipfs_cid
+            if ipfs_hash:
+                background_tasks.add_task(post_ipfs_cid_to_datalog, internal_id, ipfs_hash)
     except Exception as exception_message:
         logger.error(f"Can't approve protocol for unit {internal_id}. Exception: {exception_message}")
         raise DatabaseException(detail=exception_message)
@@ -96,5 +121,4 @@ async def remove_protocol(internal_id: str) -> GenericResponse:
     except Exception as exception_message:
         logger.error(f"Can't remove protocol for unit {internal_id}. Exception: {exception_message}")
         raise DatabaseException(detail=exception_message)
-
     return GenericResponse()

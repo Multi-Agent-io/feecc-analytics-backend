@@ -26,7 +26,7 @@ class RedisCacher(metaclass=SingletonMeta):
 
     async def _cache_to_redis(self, query: tp.Tuple[str, str], data: BaseModel) -> None:
         """Save employee data to redis"""
-        ttl = 1000 ** 2
+        ttl = 1000**2
         self._client.set(
             name=str(query),
             value=repr(data.dict()),
