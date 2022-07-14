@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing as tp
 from uuid import uuid4
 
@@ -27,6 +29,10 @@ class ProductionSchema(BaseModel):
     parent_schema_id: tp.Optional[str] = None
     schema_type: str
 
+    # async def prepare_data(self) -> ProductionSchema:
+    #     """Generate new sensitive data for schema"""
+    #     return
+
 
 class ProductionSchemasOut(GenericResponse):
     count: int
@@ -34,4 +40,4 @@ class ProductionSchemasOut(GenericResponse):
 
 
 class ProductionSchemaOut(GenericResponse):
-    schema_: tp.Annotated[tp.Optional[ProductionSchema], Field(alias="schema")]
+    prod_schema: tp.Optional[ProductionSchema]

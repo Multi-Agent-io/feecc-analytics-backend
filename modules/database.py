@@ -93,7 +93,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     @staticmethod
     async def _remove_document_from_collection(
-        collection_: AsyncIOMotorCollection, key: str, value: str, multiple: tp.Optional[bool] = None
+        collection_: AsyncIOMotorCollection, key: str, value: str, multiple: bool = False
     ) -> None:
         """
         Remove document from collection by {key:value}.
@@ -158,15 +158,19 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         self, internal_id: tp.Optional[str] = None, uuid: tp.Optional[str] = None
     ) -> tp.Optional[Passport]:
         """retrieves unit by its internal id or uuid"""
-        if internal_id and uuid:
+        if not (internal_id or uuid):
             raise ValueError("Unit search only available by uuid or internal_id")
         if internal_id:
             passport = await self._get_element_by_key(self._unit_collection, key="internal_id", value=internal_id)
+            if not passport:
+                return None
+            return Passport(**passport)
         if uuid:
             passport = await self._get_element_by_key(self._unit_collection, key="uuid", value=uuid)
-        if not passport:
-            return None
-        return Passport(**passport)
+            if not passport:
+                return None
+            return Passport(**passport)
+        return None
 
     async def get_concrete_stage(self, stage_id: str) -> tp.Optional[ProductionStage]:
         """retrieves production stage by its id"""
@@ -187,6 +191,8 @@ class MongoDbWrapper(metaclass=SingletonMeta):
     async def get_concrete_schema(self, schema_id: str) -> ProductionSchema:
         """retrieves information about production schema"""
         schema = await self._get_element_by_key(self._schemas_collection, key="schema_id", value=schema_id)
+        if not schema:
+            raise ValueError(f"No schema for unit {schema_id}")
         return ProductionSchema(**schema)
 
     async def get_concrete_protocol_prototype(self, associated_with_schema_id: str) -> tp.Optional[Protocol]:
@@ -217,9 +223,14 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             employee = await self._get_element_by_key(
                 self._employee_collection, key="passport_code", value=passport_code
             )
+            if employee:
+                return Employee(**employee)
+            return None
         if card_id:
             employee = await self._get_element_by_key(self._employee_collection, key="rfid_card_id", value=card_id)
-            return Employee(**employee)
+            if employee:
+                return Employee(**employee)
+            return None
         return None
 
     async def get_passport_creation_date(self, uuid: str) -> tp.Optional[datetime.datetime]:

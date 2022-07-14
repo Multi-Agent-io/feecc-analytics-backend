@@ -27,12 +27,12 @@ class Passport(BaseModel):
     internal_id: str
     passport_short_url: tp.Optional[str]
     passport_ipfs_cid: tp.Optional[str] = None
-    is_in_db: tp.Optional[bool]
+    is_in_db: tp.Optional[bool] = None
     featured_in_int_id: tp.Optional[str]
     biography: tp.Optional[tp.List[ProductionStageData]]
     components_internal_ids: tp.Optional[tp.List[str]]
     model: tp.Optional[str] = None
-    date: datetime = Field(alias="creation_time")
+    date: datetime = Field(default_factory=lambda: datetime.now(), alias="creation_time")
     type: tp.Optional[str] = None
     parential_unit: tp.Optional[str] = None
     serial_number: tp.Optional[str] = None
