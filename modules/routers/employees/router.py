@@ -67,6 +67,12 @@ async def decode_existing_employee(encoded_employee: EncodedEmployee) -> Employe
     """Decode an employee by encoded name"""
     try:
         employee = await MongoDbWrapper().get_concrete_employee(passport_code=encoded_employee.encoded_name)
+        if not employee:
+            return EmployeeOut(
+                status_code=404,
+                detail=f"Can't decode employee with code {encoded_employee.encoded_name}, no one found",
+                employee=None,
+            )
     except Exception as exception_message:
         raise DatabaseException(error=exception_message)
     return EmployeeOut(employee=employee)
