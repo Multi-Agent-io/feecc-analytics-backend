@@ -490,17 +490,11 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     async def edit_schema(self, schema_id: str, new_schema_data: ProductionSchema) -> None:
         """edit single production stage schema by its schema_id"""
-        await self._update_document_in_collection(
-            self._schemas_collection,
-            key="schema_id",
-            value=schema_id,
-            new_data=new_schema_data,
-            exclude={"schema_id", "parent_schema_id", "required_components_schema_ids"},
-        )
-        new_schema_data.schema_id
-        await self._update_document(
-            self._schemas_collection, filter={"schema_id": schema_id}, new_data=new_schema_data.dict()
-        )
+        data = new_schema_data.dict()
+        data["schema_id"] = schema_id
+        del data["parent_schema_id"]
+        del data["required_components_schema_ids"]
+        await self._update_document(self._schemas_collection, filter={"schema_id": schema_id}, new_data=data)
 
     async def edit_user(self, username: str, new_user_data: UserWithPassword) -> None:
         """edit concrete user's data"""
