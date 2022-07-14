@@ -219,9 +219,8 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             )
         if card_id:
             employee = await self._get_element_by_key(self._employee_collection, key="rfid_card_id", value=card_id)
-        if not employee:
-            return None
-        return Employee(**employee)
+            return Employee(**employee)
+        return None
 
     async def get_passport_creation_date(self, uuid: str) -> tp.Optional[datetime.datetime]:
         try:
@@ -486,6 +485,10 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             value=schema_id,
             new_data=new_schema_data,
             exclude={"schema_id", "parent_schema_id", "required_components_schema_ids"},
+        )
+        new_schema_data.schema_id
+        await self._update_document(
+            self._schemas_collection, filter={"schema_id": schema_id}, new_data=new_schema_data.dict()
         )
 
     async def edit_user(self, username: str, new_user_data: UserWithPassword) -> None:

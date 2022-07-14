@@ -44,7 +44,7 @@ async def delete_employee(rfid_card_id: str) -> GenericResponse:
 async def get_employee_by_card_id(rfid_card_id: str) -> tp.Union[EmployeeOut, GenericResponse]:
     """Endpoint to get information about concrete employee by his rfid card id"""
     try:
-        employee = await MongoDbWrapper().get_concrete_employee(rfid_card_id)
+        employee = await MongoDbWrapper().get_concrete_employee(card_id=rfid_card_id)
     except Exception as exception_message:
         raise DatabaseException(error=exception_message)
     if employee is None:
@@ -66,7 +66,7 @@ async def patch_employee(rfid_card_id: str, new_data: Employee) -> GenericRespon
 async def decode_existing_employee(encoded_employee: EncodedEmployee) -> EmployeeOut:
     """Decode an employee by encoded name"""
     try:
-        employee = await MongoDbWrapper().get_concrete_employee(encoded_employee.encoded_name)
+        employee = await MongoDbWrapper().get_concrete_employee(passport_code=encoded_employee.encoded_name)
     except Exception as exception_message:
         raise DatabaseException(error=exception_message)
     return EmployeeOut(employee=employee)

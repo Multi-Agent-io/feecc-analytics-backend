@@ -1,11 +1,11 @@
-FROM python:3.9-slim-buster as requirements-stage
+FROM python:3.10-slim-buster as requirements-stage
 EXPOSE 8000
 WORKDIR /tmp
 RUN pip install poetry
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-FROM python:3.9
+FROM python:3.10
 RUN apt update
 WORKDIR /feecc-analytics-backend/
 COPY --from=requirements-stage /tmp/requirements.txt /requirements.txt
