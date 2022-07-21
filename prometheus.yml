@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    scrape_interval: 15s
+    static_configs:
+    - targets: ["localhost:9090"]
+      labels:
+        instance: prometheusself
+
+  - job_name: "analyics"
+    static_configs:
+    - targets: ["nltcs:8000"]
+      labels:
+        instance: analyticslocal
+
+remote_write:
+  - url: "http://prometheus.netmvas.com/api/v1/write"
+    basic_auth:
+      username: "login"
+      password: "pass"
