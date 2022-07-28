@@ -4,6 +4,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from aioprometheus.asgi.middleware import MetricsMiddleware
+from aioprometheus.asgi.starlette import metrics
+
+
 from modules.routers import (
     employees_router,
     passports_router,
@@ -23,6 +27,13 @@ api.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"],
     allow_headers=["*"],
 )
+
+api.add_middleware(MetricsMiddleware)
+api.add_route("/metrics", metrics)
+
+# if os.getenv("USE_HTTPS", False):
+#     logger.success("Force HTTPS over HTTP enabled")
+#     api.add_middleware(HTTPSRedirectMiddleware)
 
 
 @api.on_event("startup")

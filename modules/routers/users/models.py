@@ -13,7 +13,7 @@ class GenericResponse(BaseModel):
 
 class UserOut(GenericResponse):
     user: tp.Optional[User]
-    associated_employee: tp.Optional[Employee]
+    associated_employee: tp.Optional[Employee] = None
 
 
 class UserWithPassword(User):
