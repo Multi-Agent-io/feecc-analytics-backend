@@ -2,6 +2,7 @@ import typing as tp
 
 from fastapi import HTTPException, status
 from loguru import logger
+from .metrics import Metrics
 
 
 class AuthException(HTTPException):
@@ -11,18 +12,18 @@ class AuthException(HTTPException):
         self.status_code = status.HTTP_401_UNAUTHORIZED
         self.detail = "Incorrect username or password"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.auth_failures.inc(labels=kwargs.get("details", {}))
         logger.warning(f"{self.detail} : {kwargs}")
 
 
 class CredentialsValidationException(HTTPException):
     """Exception caused by credentials (login/pass) validation"""
 
-    def __init__(self, details: tp.Optional[str] = None, **kwargs: tp.Any) -> None:
+    def __init__(self, **kwargs: tp.Any) -> None:
         self.status_code = status.HTTP_401_UNAUTHORIZED
-        self.detail = details or "Could not validate credentials"
+        self.detail = "Could not validate credentials"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.auth_failures.inc(labels=kwargs.get("details", {}))
         logger.warning(f"{self.detail} : {kwargs}")
 
 
@@ -33,7 +34,7 @@ class ConnectionTimeoutException(HTTPException):
         self.status_code = status.HTTP_408_REQUEST_TIMEOUT
         self.detail = "Timeout"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.connection_failures.inc(labels=kwargs.get("details", {}))
         logger.warning(f"{self.detail} : {kwargs}")
 
 
@@ -44,7 +45,7 @@ class IncorrectAddressException(HTTPException):
         self.status_code = status.HTTP_400_BAD_REQUEST
         self.detail = "Can't parse given address. It must starts with http(s)://"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.connection_failures.inc(labels=kwargs.get("details", {}))
         logger.warning(f"{self.detail} : {kwargs}")
 
 
@@ -55,7 +56,7 @@ class ParserException(HTTPException):
         self.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         self.detail = "Can't parse given document. Looks like it's not YAML-like"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.unhandled_failures.inc(labels=kwargs.get("details", {}))
         logger.warning(f"{self.detail} : {kwargs}")
 
 
@@ -66,7 +67,7 @@ class UnhandledException(HTTPException):
         self.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         self.detail = f"An error occured: {kwargs.get('error', None) or 'unhandled'}"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.unhandled_failures.inc(labels=kwargs.get("details", {}))
         logger.warning(f"{self.detail} : {kwargs}")
 
 
@@ -77,7 +78,7 @@ class ForbiddenActionException(HTTPException):
         self.status_code = status.HTTP_403_FORBIDDEN
         self.detail = f"insufficient permissions for current user"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.security_failures.inc(labels={"details": "forbidden"})
         logger.warning(f"{self.detail} : {kwargs}")
 
 
@@ -86,5 +87,5 @@ class DatabaseException(HTTPException):
         self.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         self.detail = f"An error occured while DB transaction: {kwargs.get('error', None) or 'unhandled'}"
         self.headers = {"WWW-Authenticate": "Bearer"}
-
+        Metrics.database_failures.inc(labels={"details": "read/write"})
         logger.warning(f"{self.detail} : {kwargs}")
