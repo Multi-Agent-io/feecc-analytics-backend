@@ -1,6 +1,7 @@
 import datetime
 import os
 import typing as tp
+from deprecated import deprecated
 
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorCursor
@@ -108,6 +109,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             await collection_.find_one_and_delete(query)
 
     @staticmethod
+    @deprecated
     async def _update_document_in_collection(
         collection_: AsyncIOMotorCollection,
         key: str,
@@ -142,6 +144,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         logger.debug(f"{passport.internal_id} internal_id for passport with uuid {uuid}")
         return passport.internal_id
 
+    @deprecated
     async def get_components_internal_id(self, uuids: tp.Optional[tp.List[str]]) -> tp.List[str]:
         """Converts all components uuids to internal ids"""
         if not uuids:
@@ -157,20 +160,34 @@ class MongoDbWrapper(metaclass=SingletonMeta):
     async def get_concrete_passport(
         self, internal_id: tp.Optional[str] = None, uuid: tp.Optional[str] = None
     ) -> tp.Optional[Passport]:
-        """retrieves unit by its internal id or uuid"""
-        if not (internal_id or uuid):
-            raise ValueError("Unit search only available by uuid or internal_id")
+        """retrieves unit with prod stages by its internal id or uuid"""
+        match_pipeline = None
         if internal_id:
-            passport = await self._get_element_by_key(self._unit_collection, key="internal_id", value=internal_id)
-            if not passport:
-                return None
-            return Passport(**passport)
-        if uuid:
-            passport = await self._get_element_by_key(self._unit_collection, key="uuid", value=uuid)
-            if not passport:
-                return None
-            return Passport(**passport)
-        return None
+            match_pipeline = {"internal_id": internal_id}
+        elif uuid:
+            match_pipeline = {"uuid": uuid}
+        else:
+            raise ValueError("Unit search only available by uuid or internal_id")
+        pipeline = [
+            {"$match": match_pipeline},
+            {
+                "$lookup": {
+                    "from": "productionStagesData",
+                    "let": {"parent_uuid": "$uuid"},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$eq": ["$parent_unit_uuid", "$$parent_uuid"]}}},
+                        {"$project": {"_id": 0}},
+                        {"$sort": {"number": 1}},
+                    ],
+                    "as": "prod_stage_dicts",
+                }
+            },
+            {"$project": {"_id": 0}},
+        ]
+        passport = await self._unit_collection.aggregate(pipeline).to_list(length=1)
+        if not passport:
+            return None
+        return Passport(**passport[0])
 
     async def get_concrete_stage(self, stage_id: str) -> tp.Optional[ProductionStage]:
         """retrieves production stage by its id"""
