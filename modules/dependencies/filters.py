@@ -50,7 +50,7 @@ async def parse_tcd_filters(
         clear_filter["status"] = status
 
     if name:
-        clear_filter["default_serial_number"] = {"$regex": name}
+        clear_filter["$or"] = [{"protocol_name": {"$regex": name}, "default_serial_number": {"$regex": name}}]
 
     if date is not None:
         start, end = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)

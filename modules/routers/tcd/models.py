@@ -64,7 +64,7 @@ class ProtocolOut(GenericResponse):
 
 
 class ProtocolsOut(GenericResponse):
-    data: tp.List[ProtocolData]
+    data: tp.List[ProtocolData | Protocol]
 
 
 class TypesOut(GenericResponse):
