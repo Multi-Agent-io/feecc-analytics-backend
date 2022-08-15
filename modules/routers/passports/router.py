@@ -37,7 +37,7 @@ async def get_all_passports(
 
         for passport in passports:
             schema = await MongoDbWrapper().get_concrete_schema(schema_id=passport.schema_id)
-            passport.type = await MongoDbWrapper().get_passport_type(schema_id=passport.schema_id)
+            passport.type = schema.schema_type
             passport.model = schema.unit_name or passport.model
             if schema.parent_schema_id:
                 passport.parential_unit = (
