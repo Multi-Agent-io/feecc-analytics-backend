@@ -1,7 +1,7 @@
-import typing as tp
+import typing
 
 import yaml
 
 
-async def load_yaml(data: str) -> tp.Any:
+async def load_yaml(data: str) -> typing.Any:
     return yaml.load(data, Loader=yaml.SafeLoader)

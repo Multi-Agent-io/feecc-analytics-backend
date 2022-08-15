@@ -1,6 +1,7 @@
+import re
+
 from aioprometheus.collectors import Counter
 from loguru import logger
-import re
 
 from modules.singleton import SingletonMeta
 

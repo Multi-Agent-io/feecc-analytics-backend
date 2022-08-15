@@ -1,21 +1,19 @@
 import os
 
+from aioprometheus.asgi.middleware import MetricsMiddleware
+from aioprometheus.asgi.starlette import metrics
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from aioprometheus.asgi.middleware import MetricsMiddleware
-from aioprometheus.asgi.starlette import metrics
-
-
 from modules.routers import (
     employees_router,
     passports_router,
+    schemas_router,
+    service_router,
+    stages_router,
     tcd_router,
     users_router,
-    service_router,
-    schemas_router,
-    stages_router,
 )
 
 api = FastAPI()
@@ -49,7 +47,7 @@ def check_environment_variables() -> None:
     if failed:
         message = "Can't start analytics server because some envvars are missing"
         logger.critical(message)
-        raise IOError(message)
+        raise OSError(message)
     else:
         logger.info("All checks passed, running analytics server")
 

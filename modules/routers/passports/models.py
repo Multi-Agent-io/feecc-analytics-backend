@@ -1,7 +1,7 @@
-import typing as tp
+import typing
 from datetime import datetime
-from uuid import uuid4
 from enum import Enum
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -25,32 +25,32 @@ class Passport(BaseModel):
     schema_id: str
     uuid: str = Field(default_factory=lambda: uuid4().hex)
     internal_id: str
-    passport_short_url: tp.Optional[str]
-    passport_ipfs_cid: tp.Optional[str] = None
-    is_in_db: tp.Optional[bool] = None
-    featured_in_int_id: tp.Optional[str]
-    biography: tp.Optional[tp.List[ProductionStageData]]
-    components_internal_ids: tp.Optional[tp.List[str]]
-    model: tp.Optional[str] = None
+    passport_short_url: str | None
+    passport_ipfs_cid: str | None = None
+    is_in_db: bool | None = None
+    featured_in_int_id: str | None
+    biography: list[ProductionStageData] | None
+    components_internal_ids: list[str] | None
+    model: str | None = None
     date: datetime = Field(default_factory=lambda: datetime.now(), alias="creation_time")
-    type: tp.Optional[str] = None
-    parential_unit: tp.Optional[str] = None
-    serial_number: tp.Optional[str] = None
-    status: tp.Optional[UnitStatus] = None
-    txn_hash: tp.Optional[str] = None
+    type: str | None = None
+    parential_unit: str | None = None
+    serial_number: str | None = None
+    status: UnitStatus | None = None
+    txn_hash: str | None = None
 
 
 class PassportsOut(GenericResponse):
     count: int
-    data: tp.List[Passport]
+    data: list[Passport]
 
 
 class PassportOut(GenericResponse):
-    passport: tp.Optional[Passport]
+    passport: Passport | None
 
 
 class TypesOut(GenericResponse):
-    data: tp.List[str]
+    data: list[str]
 
 
 class OrderBy(str, Enum):

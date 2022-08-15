@@ -1,4 +1,4 @@
-import typing as tp
+import typing
 
 from fastapi import APIRouter, Depends
 
@@ -10,7 +10,7 @@ from .models import Employee, EmployeeOut, EmployeesOut, EncodedEmployee, Generi
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-@router.get("/", response_model=tp.Union[EmployeesOut, GenericResponse])  # type:ignore
+@router.get("/", response_model=EmployeesOut | GenericResponse)  # type:ignore
 async def get_all_employees(page: int = 1, items: int = 20) -> EmployeesOut:
     """
     Endpoint to get list of all employees from :start: to :limit:. By default, from 0 to 20.
@@ -41,8 +41,8 @@ async def delete_employee(rfid_card_id: str) -> GenericResponse:
     return GenericResponse(detail=f"Removed employee with card id {rfid_card_id}")
 
 
-@router.get("/{rfid_card_id}", response_model=tp.Union[EmployeeOut, GenericResponse])  # type:ignore
-async def get_employee_by_card_id(rfid_card_id: str) -> tp.Union[EmployeeOut, GenericResponse]:
+@router.get("/{rfid_card_id}", response_model=EmployeeOut | GenericResponse)  # type:ignore
+async def get_employee_by_card_id(rfid_card_id: str) -> EmployeeOut | GenericResponse:
     """Endpoint to get information about concrete employee by his rfid card id"""
     try:
         employee = await MongoDbWrapper().get_concrete_employee(card_id=rfid_card_id)
@@ -63,7 +63,7 @@ async def patch_employee(rfid_card_id: str, new_data: Employee) -> GenericRespon
     return GenericResponse(detail="Successfully patched employee")
 
 
-@router.post("/decode", response_model=tp.Union[EmployeeOut, GenericResponse])  # type:ignore
+@router.post("/decode", response_model=EmployeeOut | GenericResponse)  # type:ignore
 async def decode_existing_employee(encoded_employee: EncodedEmployee) -> EmployeeOut:
     """Decode an employee by encoded name"""
     try:

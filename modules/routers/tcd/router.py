@@ -1,10 +1,9 @@
 import os
-import typing as tp
-
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from loguru import logger
-from modules.models import User
 
+from modules.models import User
+from modules.routers.employees.models import Employee
 from modules.routers.tcd.utils import post_ipfs_cid_to_datalog, push_to_ipfs_gateway
 
 from ...database import MongoDbWrapper
@@ -14,7 +13,6 @@ from ...dependencies.security import get_current_employee, get_current_user
 from ...exceptions import DatabaseException
 from ...types import Filter
 from .models import GenericResponse, PendingProtocolsOut, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut
-from modules.routers.employees.models import Employee
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -58,7 +56,7 @@ async def get_concrete_protocol(internal_id: str, employee: Employee = Depends(g
     If unit don't have issued passport, it'll return empty protocol template.
     Otherwise, you'll get filled protocol from database.
     """
-    protocol: tp.Union[Protocol, ProtocolData, None]
+    protocol: Protocol | ProtocolData | None
     try:
         protocol = await MongoDbWrapper().get_concrete_protocol(internal_id=internal_id)
         unit = await MongoDbWrapper().get_concrete_passport(internal_id=internal_id)

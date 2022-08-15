@@ -1,16 +1,17 @@
-import typing as tp
+import typing
 
 from fastapi import APIRouter, Depends
 
 from modules.database import MongoDbWrapper
 from modules.dependencies.security import check_user_permissions, get_current_user
 from modules.exceptions import DatabaseException
+
 from .models import GenericResponse, ProductionSchema, ProductionSchemaOut, ProductionSchemasOut
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-@router.get("/", response_model=tp.Union[ProductionSchemasOut, GenericResponse])  # type:ignore
+@router.get("/", response_model=ProductionSchemasOut | GenericResponse)  # type:ignore
 async def get_all_production_schemas(page: int = 1, items: int = 20) -> ProductionSchemasOut:
     """
     Endpoint to get all production schemas.
@@ -26,8 +27,8 @@ async def get_all_production_schemas(page: int = 1, items: int = 20) -> Producti
     return ProductionSchemasOut(count=schemas_count, data=schemas[(page - 1) * items : page * items])
 
 
-@router.get("/{schema_id}", response_model=tp.Union[ProductionSchemaOut, GenericResponse])  # type:ignore
-async def get_concrete_production_schema(schema_id: str) -> tp.Union[ProductionSchemaOut, GenericResponse]:
+@router.get("/{schema_id}", response_model=ProductionSchemasOut | GenericResponse)  # type:ignore
+async def get_concrete_production_schema(schema_id: str) -> ProductionSchemaOut | GenericResponse:
     """
     Endpoint to get concrete production schema by its schema_id field or null if not exists
     """

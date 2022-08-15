@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import typing as tp
+import typing
 from datetime import datetime
 from uuid import uuid4
 
@@ -14,20 +14,20 @@ class GenericResponse(BaseModel):
 
 class ProductionStage(BaseModel):
     name: str
-    employee_name: tp.Optional[str]
+    employee_name: str | None = None
     parent_unit_uuid: str
-    session_start_time: tp.Optional[str]
-    session_end_time: tp.Optional[str]
+    session_start_time: str | None
+    session_end_time: str | None
     ended_prematurely: bool
-    video_hashes: tp.Optional[tp.List[str]]
-    additional_info: tp.Optional[tp.Dict[tp.Any, tp.Any]]
+    video_hashes: list[str] | None = []
+    additional_info: dict[typing.Any, typing.Any] | None
     id: str = Field(default_factory=lambda: uuid4().hex)
-    is_in_db: tp.Optional[bool]
+    is_in_db: bool | None
     creation_time: datetime
-    schema_stage_id: tp.Optional[str]
+    schema_stage_id: str | None
 
-    completed: tp.Optional[bool]
-    number: tp.Optional[int]
+    completed: bool | None
+    number: int | None
 
     async def clear(self, number: int) -> ProductionStage:
         return ProductionStage(
@@ -46,14 +46,14 @@ class ProductionStage(BaseModel):
 
 
 class ProductionStageData(ProductionStage):
-    unit_name: tp.Optional[str]
-    parent_unit_internal_id: tp.Optional[str]
+    unit_name: str | None
+    parent_unit_internal_id: str | None
 
 
 class ProductionStagesOut(GenericResponse):
     count: int
-    data: tp.List[ProductionStage]
+    data: list[ProductionStage]
 
 
 class ProductionStageOut(GenericResponse):
-    stage: tp.Optional[ProductionStage]
+    stage: ProductionStage | None

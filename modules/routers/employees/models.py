@@ -1,5 +1,5 @@
 import hashlib
-import typing as tp
+import typing
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ class Employee(BaseModel):
     rfid_card_id: str
     name: str
     position: str
-    passport_code: tp.Optional[str] = None
+    passport_code: str | None = None
 
     async def compose(self) -> str:
         return " ".join([self.rfid_card_id, self.name, self.position])
@@ -31,8 +31,8 @@ class EncodedEmployee(BaseModel):
 
 class EmployeesOut(GenericResponse):
     count: int
-    data: tp.Optional[tp.List[Employee]]
+    data: list[Employee] | None
 
 
 class EmployeeOut(GenericResponse):
-    employee: tp.Optional[Employee]
+    employee: Employee | None

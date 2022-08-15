@@ -1,3 +1,3 @@
-import typing as tp
+import typing
 
-Filter = tp.Dict[str, tp.Any]
+Filter = dict[str, typing.Any]

@@ -1,20 +1,18 @@
-import typing as tp
+import json
+import os
 
 import httpx
-import os
-import json
 from loguru import logger
 from pydantic import parse_obj_as
 from robonomicsinterface import RobonomicsInterface
+
 from modules.database import MongoDbWrapper
-
 from modules.routers.tcd.models import IPFSGatewayResponse, ProtocolData
-
 
 IPFS_GATEWAY_HOST = os.getenv("IPFS_GATEWAY_HOST")
 
 
-async def convert_protocol(protocol: ProtocolData, exclude_fields: tp.Set[str] = set()) -> bytes:
+async def convert_protocol(protocol: ProtocolData, exclude_fields: set[str] = set()) -> bytes:
     return json.dumps(protocol.dict(exclude=exclude_fields), default=str).encode("utf-8")
 
 
