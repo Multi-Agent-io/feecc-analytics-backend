@@ -1,5 +1,5 @@
 import os
-import typing as tp
+import typing
 from datetime import datetime, timedelta
 
 from fastapi import Depends
@@ -10,12 +10,10 @@ from passlib.context import CryptContext
 
 from modules.database import MongoDbWrapper
 from modules.exceptions import CredentialsValidationException, ForbiddenActionException
-
-from modules.routers.employees.models import Employee
-from modules.routers.users.models import NewUser, UserWithPassword
-from modules.routers.service.models import TokenData
-
 from modules.models import User
+from modules.routers.employees.models import Employee
+from modules.routers.service.models import TokenData
+from modules.routers.users.models import NewUser, UserWithPassword
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
@@ -34,7 +32,7 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    data: tp.Dict[str, tp.Union[datetime, str]],
+    data: dict[str, datetime | str],
     expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
 ) -> str:
     to_encode = data.copy()
@@ -44,7 +42,7 @@ def create_access_token(
     return encoded_jwt
 
 
-async def authenticate_user(username: str, password: str) -> tp.Optional[UserWithPassword]:
+async def authenticate_user(username: str, password: str) -> UserWithPassword | None:
     user_data = await MongoDbWrapper().get_concrete_user(username)
     if not user_data:
         return None
@@ -62,7 +60,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         token_data = TokenData(username=username)
     except JWTError:
         raise CredentialsValidationException
-    user: tp.Optional[UserWithPassword] = await MongoDbWrapper().get_concrete_user(username=token_data.username)
+    user: UserWithPassword | None = await MongoDbWrapper().get_concrete_user(username=token_data.username)
     if user is None:
         raise CredentialsValidationException
     return User(**dict(user))
@@ -89,7 +87,7 @@ async def create_new_user(user: NewUser) -> UserWithPassword:
     )
 
 
-async def get_current_employee(user: User = Depends(get_current_user)) -> tp.Optional[Employee]:
+async def get_current_employee(user: User = Depends(get_current_user)) -> Employee | None:
     if not user.associated_employee:
         return None
     return await MongoDbWrapper().get_concrete_employee(card_id=user.associated_employee)

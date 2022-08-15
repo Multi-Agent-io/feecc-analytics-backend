@@ -1,5 +1,3 @@
-import typing as tp
-
 from pydantic import BaseModel
 
 from ...models import User
@@ -12,8 +10,8 @@ class GenericResponse(BaseModel):
 
 
 class UserOut(GenericResponse):
-    user: tp.Optional[User]
-    associated_employee: tp.Optional[Employee]
+    user: User | None
+    associated_employee: Employee | None = None
 
 
 class UserWithPassword(User):

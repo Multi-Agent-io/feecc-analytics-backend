@@ -1,11 +1,12 @@
-import typing as tp
+import typing
 
 from fastapi import Depends
 from loguru import logger
 
+from modules.routers.tcd.models import Protocol, ProtocolData
+
 from ..database import MongoDbWrapper
 from ..exceptions import DatabaseException, ForbiddenActionException
-from modules.routers.tcd.models import Protocol, ProtocolData
 from ..models import User
 from .security import get_current_user
 

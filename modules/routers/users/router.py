@@ -1,20 +1,19 @@
-import typing as tp
-
 from fastapi import APIRouter, Depends
+
+from modules.routers.employees.models import Employee
 
 from ...database import MongoDbWrapper
 from ...dependencies.security import check_user_permissions, create_new_user, get_current_employee, get_current_user
 from ...exceptions import DatabaseException
-from .models import GenericResponse, UserOut, UserWithPassword
-from modules.routers.employees.models import Employee
 from ...models import User
+from .models import GenericResponse, UserOut, UserWithPassword
 
 router = APIRouter()
 
 
-@router.get("/me", response_model=tp.Union[UserOut, GenericResponse])  # type:ignore
+@router.get("/me", response_model=UserOut | GenericResponse)  # type:ignore
 async def read_users_me(
-    user: User = Depends(get_current_user), employee: tp.Optional[Employee] = Depends(get_current_employee)
+    user: User = Depends(get_current_user), employee: Employee | None = Depends(get_current_employee)
 ) -> UserOut:
     """Returns various information about current user by token"""
     return UserOut(user=user, associated_employee=employee)
@@ -33,9 +32,9 @@ async def register_new_user(user: UserWithPassword = Depends(create_new_user)) -
 @router.get(
     "/{username}",
     dependencies=[Depends(get_current_user)],
-    response_model=tp.Union[UserOut, GenericResponse],  # type:ignore
+    response_model=UserOut | GenericResponse,  # type:ignore
 )
-async def get_user_data(username: str) -> tp.Union[UserOut, GenericResponse]:
+async def get_user_data(username: str) -> UserOut | GenericResponse:
     """Get information about concrete user"""
     try:
         user = await MongoDbWrapper().get_concrete_user(username)

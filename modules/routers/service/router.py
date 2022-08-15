@@ -1,4 +1,4 @@
-import typing as tp
+import typing
 from datetime import timedelta
 
 import httpx
@@ -22,13 +22,13 @@ router = APIRouter()
 
 
 @router.get("/api/v1/status")
-async def get_server_status() -> tp.Dict[str, str]:
+async def get_server_status() -> dict[str, str]:
     """Endpoint to get server status"""
     return {"status": "ok"}
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> tp.Dict[str, str]:
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> dict[str, str]:
     """
     Endpoint for user-auth
 
@@ -44,7 +44,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @router.get("/api/v1/ipfs_decode")
-async def parse_ipfs_link(link: str) -> tp.Any:
+async def parse_ipfs_link(link: str) -> typing.Any:
     """Extracts saved passport from IPFS/Pinata"""
     if not link.startswith(("http://", "https://")):
         raise IncorrectAddressException
@@ -62,5 +62,5 @@ async def parse_ipfs_link(link: str) -> tp.Any:
 
 
 @router.get("/api/v1/validate")
-async def validate_stages() -> tp.List[bool]:
+async def validate_stages() -> list[bool]:
     pass

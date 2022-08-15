@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-import typing as tp
+import typing
 from datetime import datetime
 from uuid import uuid4
 
@@ -20,7 +20,7 @@ class ProtocolStatus(str, enum.Enum):
     second = "Вторая стадия испытаний пройдена"
     third = "Протокол утверждён"
 
-    @tp.no_type_check
+    @typing.no_type_check
     async def switch(self) -> ProtocolStatus:
         if self.value == self.first:
             return ProtocolStatus(self.second.value)
@@ -34,9 +34,9 @@ class ProtocolStatus(str, enum.Enum):
 class ProtocolRow(BaseModel):
     name: str
     value: str
-    deviation: tp.Optional[str] = None
-    test1: tp.Optional[str]
-    test2: tp.Optional[str]
+    deviation: str | None = None
+    test1: str | None
+    test2: str | None
     checked: bool = False
 
 
@@ -44,8 +44,8 @@ class Protocol(BaseModel):
     protocol_name: str
     protocol_schema_id: str
     associated_with_schema_id: str
-    default_serial_number: tp.Optional[str]
-    rows: tp.List[ProtocolRow]
+    default_serial_number: str | None
+    rows: list[ProtocolRow]
 
 
 class ProtocolData(Protocol):
@@ -53,17 +53,31 @@ class ProtocolData(Protocol):
     associated_unit_id: str
     status: ProtocolStatus = ProtocolStatus.first
     creation_time: datetime = Field(default_factory=datetime.now)
+    ipfs_cid: str | None = None
+    txn_hash: str | None = None
 
 
 class ProtocolOut(GenericResponse):
-    serial_number: tp.Optional[str]
-    employee: tp.Optional[Employee]
-    protocol: tp.Union[ProtocolData, Protocol]
+    serial_number: str | None
+    employee: Employee | None
+    protocol: ProtocolData | Protocol
 
 
 class ProtocolsOut(GenericResponse):
-    data: tp.List[ProtocolData]
+    data: list[ProtocolData | Protocol]
 
 
 class TypesOut(GenericResponse):
-    data: tp.List[str]
+    data: list[str]
+
+
+class IPFSGatewayResponse(BaseModel):
+    status: int
+    details: str
+    ipfs_cid: str | None = None
+    ipfs_link: str | None = None
+
+
+class PendingProtocolsOut(GenericResponse):
+    count: int
+    pending: list[str]

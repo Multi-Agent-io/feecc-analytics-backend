@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "feecc-analytics-backend"
-version = "1.1.0"
+version = "1.1.1"
 description = "Analytics system for Feecc Ecosystem"
 authors = ["Nikolas <timofeevnik41@gmail.com>"]
 
@@ -18,11 +18,14 @@ httpx = "^0.19.0"
 PyYAML = "^5.4.1"
 redis = "^4.1.4"
 types-redis = "^4.1.18"
-click = "8.0.1"
+click = "8.1.1"
+robonomics-interface = "^0.11.2"
+aioprometheus = {extras = ["starlette"], version = "^22.5.0"}
+types-Deprecated = "^1.2.9"
 
 [tool.poetry.dev-dependencies]
 rope = "^0.19.0"
-black = "^21.10b0"
+black = "^22.1"
 mypy = "^0.910"
 types-PyYAML = "^6.0.1"
 pytest = "^6.2.5"

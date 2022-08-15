@@ -1,4 +1,4 @@
-import typing as tp
+import typing
 
 from fastapi import APIRouter, Depends
 
@@ -10,7 +10,7 @@ from .models import GenericResponse, ProductionStage, ProductionStageOut, Produc
 router = APIRouter(dependencies=[Depends(get_current_user)], deprecated=True)
 
 
-@router.get("/", response_model=tp.Union[ProductionStagesOut, GenericResponse])  # type:ignore
+@router.get("/", response_model=ProductionStagesOut | GenericResponse)  # type:ignore
 async def get_production_stages(page: int = 1, items: int = 20, decode_employees: bool = False) -> ProductionStagesOut:
     """
     Endpoint to get list of all production stages from :start: to :limit:. By default, from 0 to 20.
@@ -46,8 +46,8 @@ async def remove_stage(stage_id: str) -> GenericResponse:
     return GenericResponse(detail=f"Deleted stage with id {stage_id}")
 
 
-@router.get("/{stage_id}", response_model=tp.Union[ProductionStageOut, GenericResponse])  # type:ignore
-async def get_stage_by_id(stage_id: str) -> tp.Union[ProductionStageOut, GenericResponse]:
+@router.get("/{stage_id}", response_model=typing.Union[ProductionStageOut, GenericResponse])  # type:ignore
+async def get_stage_by_id(stage_id: str) -> ProductionStageOut | GenericResponse:
     """Endpoint to get information about concrete production stage"""
     try:
         stage = await MongoDbWrapper().get_concrete_stage(stage_id)

@@ -1,4 +1,4 @@
-import typing as tp
+import typing
 
 from fastapi import APIRouter, Depends
 from loguru import logger
@@ -16,7 +16,7 @@ from .models import GenericResponse, OrderBy, Passport, PassportOut, PassportsOu
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-@router.get("/", response_model=tp.Union[PassportsOut, GenericResponse])  # type:ignore
+@router.get("/", response_model=PassportsOut | GenericResponse)  # type:ignore
 async def get_all_passports(
     page: int = 1,
     items: int = 20,
@@ -37,7 +37,7 @@ async def get_all_passports(
 
         for passport in passports:
             schema = await MongoDbWrapper().get_concrete_schema(schema_id=passport.schema_id)
-            passport.type = await MongoDbWrapper().get_passport_type(schema_id=passport.schema_id)
+            passport.type = schema.schema_type
             passport.model = schema.unit_name or passport.model
             if schema.parent_schema_id:
                 passport.parential_unit = (
@@ -55,7 +55,7 @@ async def get_all_passports(
 @router.get(
     "/types",
     dependencies=[Depends(check_user_permissions)],
-    response_model=tp.Union[TypesOut, GenericResponse],  # type:ignore
+    response_model=TypesOut | GenericResponse,  # type:ignore
 )
 async def get_all_possible_types() -> TypesOut:
     try:
@@ -89,8 +89,8 @@ async def delete_passport(internal_id: str) -> GenericResponse:
     return GenericResponse(detail="Deleted unit")
 
 
-@router.get("/{internal_id}", response_model=tp.Union[PassportOut, GenericResponse])  # type:ignore
-async def get_passport_by_internal_id(internal_id: str) -> tp.Union[PassportOut, GenericResponse]:
+@router.get("/{internal_id}", response_model=PassportOut | GenericResponse)  # type:ignore
+async def get_passport_by_internal_id(internal_id: str) -> PassportOut | GenericResponse:
     """Endpoint to get information about concrete issued unit"""
     try:
         passport = await MongoDbWrapper().get_concrete_passport(internal_id)
@@ -100,16 +100,10 @@ async def get_passport_by_internal_id(internal_id: str) -> tp.Union[PassportOut,
 
         schema = await MongoDbWrapper().get_concrete_schema(schema_id=passport.schema_id)
         passport.model = schema.unit_name or passport.model
-        passport.type = await MongoDbWrapper().get_passport_type(schema_id=passport.schema_id)
+        passport.type = schema.schema_type
         if schema.parent_schema_id:
             parential_unit = await MongoDbWrapper().get_concrete_schema(schema_id=schema.parent_schema_id)
             passport.parential_unit = parential_unit.unit_name
-
-        passport.biography = await MongoDbWrapper().get_stages(uuid=passport.uuid)
-        if passport.biography:
-            if passport.components_internal_ids:
-                for int_id in passport.components_internal_ids:
-                    passport.biography += await MongoDbWrapper().get_stages(internal_id=int_id, is_subcomponent=True)
 
     except Exception as exception_message:
         logger.error(f"Failed to get unit {internal_id}. Exception: {exception_message}")
@@ -123,9 +117,7 @@ async def update_serial_number(internal_id: str, serial_number: str) -> GenericR
     Update passport's serial number
     """
     try:
-        current_serial_number: tp.Optional[str] = await MongoDbWrapper().get_passport_serial_number(
-            internal_id=internal_id
-        )
+        current_serial_number: str | None = await MongoDbWrapper().get_passport_serial_number(internal_id=internal_id)
         if current_serial_number != serial_number:
             await MongoDbWrapper().update_serial_number(internal_id=internal_id, serial_number=serial_number)
 
@@ -150,7 +142,7 @@ async def patch_passport(internal_id: str, new_data: Passport) -> GenericRespons
 
 
 @router.post("/{internal_id}/revision", response_model=GenericResponse)
-async def send_for_revision(internal_id: str, stages_ids: tp.List[str]) -> GenericResponse:
+async def send_for_revision(internal_id: str, stages_ids: list[str]) -> GenericResponse:
     """
     Endpoint to sent current unit for revision by selected stages ids.
     Empty copy of those stages will be created. Unit status will change to 'revision'.
@@ -167,7 +159,7 @@ async def send_for_revision(internal_id: str, stages_ids: tp.List[str]) -> Gener
 
 @router.post("/{internal_id}/revision/cancel", response_model=GenericResponse, dependencies=[Depends(check_passport)])
 async def cancel_revision_stage(
-    internal_id: str, stage_id: str, employee: tp.Optional[Employee] = Depends(get_current_employee)
+    internal_id: str, stage_id: str, employee: Employee | None = Depends(get_current_employee)
 ) -> GenericResponse:
     """
     Endpoint to cancel revision for selected stages.

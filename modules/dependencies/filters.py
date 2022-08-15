@@ -1,18 +1,17 @@
 import datetime
-import typing as tp
+import typing
 
-from pydantic import Field
-
-from modules.routers.tcd.models import ProtocolStatus
 from modules.routers.passports.models import UnitStatus
+from modules.routers.tcd.models import ProtocolStatus
+
 from ..types import Filter
 
 
 async def parse_passports_filter(
-    status: tp.Optional[UnitStatus] = None,
-    name: tp.Optional[str] = None,
-    date: tp.Optional[datetime.datetime] = None,
-    types: tp.Optional[str] = None,
+    status: UnitStatus | None = None,
+    name: str | None = None,
+    date: datetime.datetime | None = None,
+    types: str | None = None,
 ) -> Filter:
     clear_filter: Filter = {}
 
@@ -31,7 +30,7 @@ async def parse_passports_filter(
         clear_filter["creation_time"] = {"$lt": end, "$gte": start}
 
     if types is not None:
-        types_array: tp.List[str] = types.split(",")
+        types_array: list[str] = types.split(",")
         clear_filter["types"] = {"$in": types_array}
 
     if status:
@@ -41,9 +40,9 @@ async def parse_passports_filter(
 
 
 async def parse_tcd_filters(
-    status: tp.Optional[ProtocolStatus] = None,
-    name: tp.Optional[str] = None,
-    date: tp.Optional[datetime.datetime] = None,
+    status: ProtocolStatus | None = None,
+    name: str | None = None,
+    date: datetime.datetime | None = None,
 ) -> Filter:
     clear_filter: Filter = {}
 
@@ -51,7 +50,7 @@ async def parse_tcd_filters(
         clear_filter["status"] = status
 
     if name:
-        clear_filter["name"] = name
+        clear_filter["$or"] = [{"protocol_name": {"$regex": name}, "default_serial_number": {"$regex": name}}]
 
     if date is not None:
         start, end = date.replace(hour=0, minute=0, second=0), date.replace(hour=23, minute=59, second=59)

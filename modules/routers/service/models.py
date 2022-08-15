@@ -1,10 +1,8 @@
-import typing as tp
-
 from pydantic import BaseModel
 
 
 class TokenData(BaseModel):
-    username: tp.Optional[str] = None
+    username: str | None = None
 
 
 class Token(BaseModel):

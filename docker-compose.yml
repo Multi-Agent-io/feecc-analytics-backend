@@ -1,29 +1,31 @@
 version: "3"
 services:
-  redis:
-    image: "redis:alpine"
-    command: redis-server
-    ports:
-      - "6379:6379"
-    volumes:
-      - $PWD/redis-data:/var/lib/redis
-    environment:
-      - REDIS_REPLICATION_MODE=master
-    restart: always
-
   feecc_analytics:
     build:
       dockerfile: Dockerfile
       context: .
     env_file:
-        - .env
+      - .env
     ports:
       - "5002:8000"
     volumes:
-      - "./output:/output"
-      - "/dev/usb:/dev/usb"
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
-    links:
-      - redis:redis
     restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    expose:
+      - 9090
+    links: 
+      - "feecc_analytics:nltcs"
