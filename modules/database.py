@@ -179,7 +179,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
                         {"$project": {"_id": 0}},
                         {"$sort": {"number": 1}},
                     ],
-                    "as": "prod_stage_dicts",
+                    "as": "biography",
                 }
             },
             {"$project": {"_id": 0}},
