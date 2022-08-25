@@ -1,14 +1,10 @@
 # Feecc Analytics Backend
 
+> Docs available at https://wiki.robonomics.network/docs/en/feecc-system-deploy-feecc-analytics
+
 ## Setup & Run
 
-<!-- 1) ```poetry install```
-
-> Warning! Don't forget to put **"SECRET_KEY**" (SHA265 secret key) and **"MONGO_CONNECTION_URL"** (MongoDB url. Example: `mongodb+srv://<login>:<pass>@<atlas url>.mongodb.net/<database>?retryWrites=true&w=majority`) to your envvars
-
-2) Run using `$ uvicorn app:api --host <IP> --port <PORT>` 
-
-3) Test availability: `$ curl -X 'GET' 'http://<HOST>:<PORT>/api/v1/status'`. If the response is `{"status":"ok"}`, then it's alright. -->
+### Via docker (Recomended)
 
 >Install Docker and Docker-compose first.
 
@@ -18,15 +14,26 @@ By default, access port is `5002`.
 
 Edit env file for Docker `.env`, follow instructions inside
 
-## API
+### Dev way
 
+1) ```poetry install```
+
+> Warning! Don't forget to put **"SECRET_KEY**" (SHA265 secret key) and **"MONGO_CONNECTION_URL"** (MongoDB url. Example: `mongodb+srv://<login>:<pass>@<atlas url>.mongodb.net/<database>?retryWrites=true&w=majority`) to your envvars
+
+2) Run using `$ uvicorn app:api --host <IP> --port <PORT>` 
+
+3) Test availability: `$ curl -X 'GET' 'http://<HOST>:<PORT>/api/v1/status'`. If the response is `{"status":"ok"}`, then it's alright.
+
+
+## API
 
 For more information about endpoints, data flows and main operations, go to `http://<HOST>:<PORT>/docs`
 
-
 <details>
 <summary>Endpoints usage examples</summary>
+
 <br>
+
 ### Security
 
 - /token
