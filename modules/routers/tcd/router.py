@@ -27,8 +27,8 @@ async def get_protocols(page: int = 1, items: int = 20, filter: Filter = Depends
         protocols = await MongoDbWrapper().get_all_protocols(filter=filter)
     except Exception as exception_message:
         logger.warning(f"Can't get all protocols from DB. Filter: {filter}")
-        raise DatabaseException(error=exception_message)
-    return ProtocolsOut(data=protocols[(page - 1) * items : page * items])
+        raise DatabaseException(error=exception_message) from exception_message
+    return ProtocolsOut(count=len(protocols), data=protocols[(page - 1) * items: page * items])
 
 
 @router.get("/protocols/types")
@@ -45,7 +45,7 @@ async def get_pending_protocols() -> PendingProtocolsOut:
         pending = [protocol.protocol_id for protocol in await MongoDbWrapper().get_pending_protocols()]
     except Exception as exception_message:
         logger.error(f"Can't get pending protocols. {exception_message}")
-        raise DatabaseException(detail=exception_message)
+        raise DatabaseException(detail=exception_message) from exception_message
     return PendingProtocolsOut(count=len(pending) if pending else 0, pending=pending)
 
 
@@ -68,7 +68,7 @@ async def get_concrete_protocol(internal_id: str, employee: Employee = Depends(g
             raise DatabaseException(detail="Can't create protocol for unit {internal_id}, missing schema")
     except Exception as exception_message:
         logger.warning(f"Can't get protocol for unit {internal_id}, exc: {exception_message}")
-        raise DatabaseException(detail=exception_message)
+        raise DatabaseException(detail=exception_message) from exception_message
     return ProtocolOut(serial_number=unit.serial_number, employee=employee, protocol=protocol)
 
 
@@ -84,14 +84,13 @@ async def handle_protocol_update(protocol: ProtocolData = Depends(handle_protoco
     except Exception as exception_message:
         logger.error(f"Can't process protocol for unit {protocol.associated_unit_id}. Exception: {exception_message}")
         logger.debug(f"Protocol: {protocol}")
-        raise DatabaseException(detail=exception_message)
-
+        raise DatabaseException(detail=exception_message) from exception_message
     return GenericResponse()
 
 
 @router.post("/protocols/{internal_id}/approve", response_model=GenericResponse)
 async def approve_protocol(
-    internal_id: str, background_tasks: BackgroundTasks, user: User = Depends(get_current_user)
+        internal_id: str, background_tasks: BackgroundTasks, user: User = Depends(get_current_user)
 ) -> GenericResponse:
     """Endpoint to approve protocol (if unit already passed any checks)"""
     try:
@@ -101,8 +100,7 @@ async def approve_protocol(
             raise ValueError(f"Protocol {internal_id} not found")
         if eval(os.getenv("USE_DATALOG", "False")):
             response = await push_to_ipfs_gateway(protocol=protocol, username=user.username)
-            ipfs_hash = response.ipfs_cid
-            if ipfs_hash:
+            if ipfs_hash := response.ipfs_cid:
                 background_tasks.add_task(post_ipfs_cid_to_datalog, internal_id, ipfs_hash)
     except Exception as exception_message:
         logger.error(f"Can't approve protocol for unit {internal_id}. Exception: {exception_message}")

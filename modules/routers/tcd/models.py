@@ -64,6 +64,7 @@ class ProtocolOut(GenericResponse):
 
 
 class ProtocolsOut(GenericResponse):
+    count: int
     data: list[ProtocolData | Protocol]
 
 
