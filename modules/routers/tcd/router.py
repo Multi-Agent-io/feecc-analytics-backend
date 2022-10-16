@@ -5,6 +5,7 @@ from loguru import logger
 from modules.models import User
 from modules.routers.employees.models import Employee
 from modules.routers.tcd.utils import post_ipfs_cid_to_datalog, push_to_ipfs_gateway
+from ..passports.models import OrderBy
 
 from ...database import MongoDbWrapper
 from ...dependencies.filters import parse_tcd_filters
@@ -18,17 +19,28 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/protocols", response_model=ProtocolsOut)
-async def get_protocols(page: int = 1, items: int = 20, filter: Filter = Depends(parse_tcd_filters)) -> ProtocolsOut:
+async def get_protocols(
+        page: int = 1,
+        items: int = 20,
+        filter: Filter = Depends(parse_tcd_filters),
+        sort_by_date: OrderBy = OrderBy.ascending,
+) -> ProtocolsOut:
     """
     Endpoint to get all issued protocols from database.
     You can't receive empty protocol templates here
     """
     try:
         protocols = await MongoDbWrapper().get_all_protocols(filter=filter)
+        protocols_count = len(protocols)
+
+        if sort_by_date == "asc":
+            protocols.reverse()
+        protocols = protocols[(page - 1) * items: page * items]
+
     except Exception as exception_message:
         logger.warning(f"Can't get all protocols from DB. Filter: {filter}")
         raise DatabaseException(error=exception_message) from exception_message
-    return ProtocolsOut(count=len(protocols), data=protocols[(page - 1) * items: page * items])
+    return ProtocolsOut(count=protocols_count, data=protocols[(page - 1) * items: page * items])
 
 
 @router.get("/protocols/types")
