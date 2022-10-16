@@ -36,11 +36,10 @@ async def get_protocols(
         if sort_by_date == "asc":
             protocols.reverse()
         protocols = protocols[(page - 1) * items : page * items]
-
     except Exception as exception_message:
         logger.warning(f"Can't get all protocols from DB. Filter: {filter}")
         raise DatabaseException(error=exception_message) from exception_message
-    return ProtocolsOut(count=protocols_count, data=protocols[(page - 1) * items : page * items])
+    return ProtocolsOut(count=protocols_count, data=protocols)
 
 
 @router.get("/protocols/types")
