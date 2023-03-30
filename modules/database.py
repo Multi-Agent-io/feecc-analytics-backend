@@ -11,7 +11,7 @@ from modules.routers.employees.models import Employee
 from modules.routers.passports.models import Passport, UnitStatus
 from modules.routers.schemas.models import ProductionSchema
 from modules.routers.stages.models import ProductionStage, ProductionStageData
-from modules.routers.tcd.models import Protocol, ProtocolData, ProtocolStatus
+from modules.routers.tcd.models import Protocol, ProtocolData, ProtocolStatus, TemplateProtocolsList
 from modules.routers.users.models import UserWithPassword
 
 from .singleton import SingletonMeta
@@ -77,9 +77,25 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     @staticmethod
     async def _get_element_by_key(collection_: AsyncIOMotorCollection, key: str, value: str) -> dict[str, typing.Any]:
-        """retrieves all documents from given collection by given {key: value}"""
+        """retrieves a document from given collection by given {key: value}"""
         result: dict[str, typing.Any] = await collection_.find_one({key: value}, {"_id": 0})
         return result
+
+    @staticmethod
+    async def _get_all_templates_associated_with_schema_id(collection_: AsyncIOMotorCollection, key: str, value: str) -> dict[str, typing.Any] | list[dict[str, typing.Any]]:
+        """Get all protocol schemas given the corresponding production schema_id"""
+        protocols_associated_with_scheme: list = await collection_.distinct("protocol_name", filter={key: value})
+        logger.info(f"Templates: {protocols_associated_with_scheme}")
+        n_template: int = len(protocols_associated_with_scheme)
+        logger.info(f"Number of templates: {n_template}")
+        if n_template <= 1:
+            result: dict[str, typing.Any] | list[dict[str, typing.Any]] = await collection_.find_one({key: value}, {"_id": 0})
+            return result
+        else:
+            result: dict[str, typing.Any] | list[dict[str, typing.Any]] = []
+            for template in protocols_associated_with_scheme:
+                result.append(await collection_.find_one({"protocol_name": template}))
+            return result
 
     @staticmethod
     async def _count_documents_in_collection(collection_: AsyncIOMotorCollection, filter: Filter = {}) -> int:
@@ -212,12 +228,15 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
     async def get_concrete_protocol_prototype(self, associated_with_schema_id: str) -> Protocol | None:
         """retrieves information about protocol prototype"""
-        protocol = await self._get_element_by_key(
+        protocol = await self._get_all_templates_associated_with_schema_id(
             self._protocols_collection, key="associated_with_schema_id", value=associated_with_schema_id
         )
         if not protocol:
             return None
-        return Protocol(**protocol)
+        if isinstance(protocol, list):
+            return TemplateProtocolsList(protocols=protocol)
+        elif isinstance(protocol, dict):
+            return Protocol(**protocol)
 
     async def get_concrete_protocol(self, internal_id: str) -> ProtocolData | None:
         """retrieves information about protocol by int_id"""

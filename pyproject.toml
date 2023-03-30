@@ -22,6 +22,7 @@ click = "8.1.1"
 robonomics-interface = "^0.11.2"
 aioprometheus = {extras = ["starlette"], version = "^22.5.0"}
 types-Deprecated = "^1.2.9"
+deprecated = "1.2.13"
 
 [tool.poetry.dev-dependencies]
 rope = "^0.19.0"

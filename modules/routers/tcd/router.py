@@ -13,7 +13,7 @@ from ...dependencies.handlers import handle_protocol
 from ...dependencies.security import get_current_employee, get_current_user
 from ...exceptions import DatabaseException
 from ...types import Filter
-from .models import GenericResponse, PendingProtocolsOut, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut
+from .models import GenericResponse, PendingProtocolsOut, Protocol, ProtocolData, ProtocolOut, ProtocolsOut, TypesOut, TemplateProtocolsList
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -67,7 +67,7 @@ async def get_concrete_protocol(internal_id: str, employee: Employee = Depends(g
     If unit don't have issued passport, it'll return empty protocol template.
     Otherwise, you'll get filled protocol from database.
     """
-    protocol: Protocol | ProtocolData | None
+    protocol: Protocol | ProtocolData | TemplateProtocolsList | None
     try:
         protocol = await MongoDbWrapper().get_concrete_protocol(internal_id=internal_id)
         unit = await MongoDbWrapper().get_concrete_passport(internal_id=internal_id)

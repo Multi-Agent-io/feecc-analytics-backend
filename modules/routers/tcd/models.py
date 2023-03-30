@@ -48,6 +48,10 @@ class Protocol(BaseModel):
     rows: list[ProtocolRow]
 
 
+class TemplateProtocolsList(BaseModel):
+    protocols: list[Protocol]
+
+
 class ProtocolData(Protocol):
     protocol_id: str = Field(default_factory=lambda: uuid4().hex)
     associated_unit_id: str
@@ -60,7 +64,7 @@ class ProtocolData(Protocol):
 class ProtocolOut(GenericResponse):
     serial_number: str | None
     employee: Employee | None
-    protocol: ProtocolData | Protocol
+    protocol: ProtocolData | Protocol | TemplateProtocolsList
 
 
 class ProtocolsOut(GenericResponse):
