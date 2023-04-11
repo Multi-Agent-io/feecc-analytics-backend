@@ -151,6 +151,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         if not filter or not new_data:
             raise ValueError(f"Expected filter and new_data, got {filter}:{new_data}")
         await collection.find_one_and_update(filter, {"$set": new_data})
+        logger.info("Update successful")
 
     async def get_internal_id_by_uuid(self, uuid: str) -> str:
         """Get internal id by given uuid"""
@@ -654,6 +655,21 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         logger.info(f"Approved protocol for unit {internal_id}, protocol {protocol.protocol_id}")
 
         await self.update_passport_status(internal_id=internal_id, status=UnitStatus.finalized)
+        await self.update_protocol(protocol_data=protocol)
+
+    async def disapprove_protocol(self, internal_id: str) -> None:
+        """Method to disapprove protocol. Used when failed to submit approved protocol to IPFS and Robonomics"""
+        protocol = await self.get_concrete_protocol(internal_id=internal_id)
+        associated_passport = await self.get_concrete_passport(internal_id=internal_id)
+
+        if not protocol or not associated_passport:
+            raise ValueError(f"Protocol {internal_id} not found")
+
+        protocol.status = ProtocolStatus.second
+
+        logger.info(f"Disapproved protocol for unit {internal_id}, protocol {protocol.protocol_id}")
+
+        await self.update_passport_status(internal_id=internal_id, status=UnitStatus.built)
         await self.update_protocol(protocol_data=protocol)
 
     async def cancel_revision(self, stage_id: str, employee: Employee | None = None) -> None:

@@ -115,6 +115,10 @@ async def approve_protocol(
                 background_tasks.add_task(post_ipfs_cid_to_datalog, internal_id, ipfs_hash)
     except Exception as exception_message:
         logger.error(f"Can't approve protocol for unit {internal_id}. Exception: {exception_message}")
+        try:
+            await MongoDbWrapper().disapprove_protocol(internal_id=internal_id)
+        except Exception as e:
+            logger.error(f"Failed to disapprove protocol for unit {internal_id}. Exception: {e}")
         raise DatabaseException(detail=exception_message)
 
     return GenericResponse()
