@@ -666,11 +666,11 @@ class MongoDbWrapper(metaclass=SingletonMeta):
             raise ValueError(f"Protocol {internal_id} not found")
 
         protocol.status = ProtocolStatus.second
-
+        await self.update_protocol(protocol_data=protocol)
+        await self.update_passport_status(internal_id=internal_id, status=UnitStatus.built)
         logger.info(f"Disapproved protocol for unit {internal_id}, protocol {protocol.protocol_id}")
 
-        await self.update_passport_status(internal_id=internal_id, status=UnitStatus.built)
-        await self.update_protocol(protocol_data=protocol)
+
 
     async def cancel_revision(self, stage_id: str, employee: Employee | None = None) -> None:
         """Method to cancel revision for concrete production stage. It'll be marked as 'canceled'"""

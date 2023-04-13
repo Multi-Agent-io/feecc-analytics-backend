@@ -109,17 +109,25 @@ async def approve_protocol(
         protocol = await MongoDbWrapper().get_concrete_protocol(internal_id=internal_id)
         if not protocol:
             raise ValueError(f"Protocol {internal_id} not found")
-        if eval(os.getenv("USE_DATALOG", "False")):
+    except Exception as exception_message:
+        logger.error(f"Can't approve protocol for unit {internal_id}. Exception: {exception_message}")
+        raise DatabaseException(detail=exception_message)
+
+    if eval(os.getenv("USE_DATALOG", "False")):
+        try:
             response = await push_to_ipfs_gateway(protocol=protocol, username=user.username)
             if ipfs_hash := response.ipfs_cid:
                 background_tasks.add_task(post_ipfs_cid_to_datalog, internal_id, ipfs_hash)
-    except Exception as exception_message:
-        logger.error(f"Can't approve protocol for unit {internal_id}. Exception: {exception_message}")
-        try:
-            await MongoDbWrapper().disapprove_protocol(internal_id=internal_id)
-        except Exception as e:
-            logger.error(f"Failed to disapprove protocol for unit {internal_id}. Exception: {e}")
-        raise DatabaseException(detail=exception_message)
+        except Exception as exception_message:
+            logger.error(f"Can't upload protocol for unit {internal_id} to IPFS and pin CID in Robonomics. "
+                         f"Exception: {exception_message}")
+            try:
+                logger.info(f"Disapproving protocol for unit {internal_id}.")
+                await MongoDbWrapper().disapprove_protocol(internal_id=internal_id)
+            except Exception as exception_message:
+                logger.error(f"Failed to disapprove protocol for unit {internal_id}. Exception: {exception_message}")
+            finally:
+                raise DatabaseException(detail=exception_message)
 
     return GenericResponse()
 

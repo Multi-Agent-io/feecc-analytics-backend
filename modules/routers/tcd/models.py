@@ -77,8 +77,6 @@ class TypesOut(GenericResponse):
 
 
 class IPFSGatewayResponse(BaseModel):
-    status: int
-    details: str
     ipfs_cid: str | None = None
     ipfs_link: str | None = None
 
