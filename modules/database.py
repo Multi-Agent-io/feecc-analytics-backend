@@ -517,7 +517,7 @@ class MongoDbWrapper(metaclass=SingletonMeta):
         passport = await self.get_concrete_passport(internal_id=internal_id)
         if not passport:
             raise ValueError(f"Can't remove protocol for nonexistent unit {internal_id}")
-        if passport.status in [UnitStatus.finalized, UnitStatus.approved]:
+        if passport.status == UnitStatus.finalized:
             await self.update_passport_status(internal_id=internal_id, status=UnitStatus.built)
         await self._remove_document_from_collection(
             self._protocols_data_collection, key="associated_unit_id", value=internal_id
@@ -652,10 +652,12 @@ class MongoDbWrapper(metaclass=SingletonMeta):
 
         protocol.status = ProtocolStatus.third
 
-        logger.info(f"Approved protocol for unit {internal_id}, protocol {protocol.protocol_id}")
-
         await self.update_passport_status(internal_id=internal_id, status=UnitStatus.finalized)
         await self.update_protocol(protocol_data=protocol)
+
+        logger.info(f"Approved protocol for unit {internal_id}, protocol {protocol.protocol_id}")
+
+
 
     async def disapprove_protocol(self, internal_id: str) -> None:
         """Method to disapprove protocol. Used when failed to submit approved protocol to IPFS and Robonomics"""

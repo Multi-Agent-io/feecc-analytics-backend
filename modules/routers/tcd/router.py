@@ -53,7 +53,7 @@ async def get_protocols_types() -> TypesOut:
 async def get_pending_protocols() -> PendingProtocolsOut:
     """Get lists of all protocols ids pending approval"""
     try:
-        pending = [protocol.protocol_id for protocol in await MongoDbWrapper().get_pending_protocols()]
+        pending = [protocol for protocol in await MongoDbWrapper().get_pending_protocols()]
     except Exception as exception_message:
         logger.error(f"Can't get pending protocols. {exception_message}")
         raise DatabaseException(detail=exception_message) from exception_message
