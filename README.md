@@ -1,38 +1,62 @@
 # Feecc Analytics Backend
 
-> Docs available at https://wiki.robonomics.network/docs/en/feecc-system-deploy-feecc-analytics
+Feecc Analytics Backend is the main software for deploying analytics service for Feecc, a Web3 enabled production tracking system.
 
-## Setup & Run
+## Setup and run
 
-### Via docker (Recomended)
+### Via Docker (Recomended)
 
 >Install Docker and Docker-compose first.
 
-run via `docker-compose up --build`
+Run in the directory:
+
+```
+docker-compose up --build
+```
 
 By default, access port is `5002`.
 
-Edit env file for Docker `.env`, follow instructions inside
+### Full deployment
 
-### Dev way
+Run in the command line:
 
-1) ```poetry install```
+```
+poetry install
+```
 
-> Warning! Don't forget to put **"SECRET_KEY**" (SHA265 secret key) and **"MONGO_CONNECTION_URL"** (MongoDB url. Example: `mongodb+srv://<login>:<pass>@<atlas url>.mongodb.net/<database>?retryWrites=true&w=majority`) to your envvars
+> Warning! Don't forget to put **"SECRET_KEY**" (SHA265 secret key) and **"MONGO_CONNECTION_URL"** (MongoDB url. Example: `mongodb+srv://<login>:<pass>@<atlas url>.mongodb.net/<database>?retryWrites=true&w=majority`) to your environment variables.
 
-2) Run using `$ uvicorn app:api --host <IP> --port <PORT>` 
+Run using:
 
-3) Test availability: `$ curl -X 'GET' 'http://<HOST>:<PORT>/api/v1/status'`. If the response is `{"status":"ok"}`, then it's alright.
+```
+uvicorn app:api --host <IP> --port <PORT>
+```
 
+Test availability:
+```
+curl -X 'GET' 'http://<HOST>:<PORT>/api/v1/status'
+```
+
+If the response is `{"status":"ok"}`, then it's alright.
+
+## Configuration
+
+To configure your deployment edit the environment variables, provided in `.env` file.
+
+Environment variables:
+
+- `MONGO_CONNECTION_URL` — your connection URI to MongoDB;
+- `MONGO_DATABASE_NAME` — a database name of MongoDB;
+- `SECRET_KEY` — secret key for hashing and dehashing;
+- `IPFS_GATEWAY_HOST` — URL of IPFS Gateway;
+- `USE_DATALOG` — sending analytics data to Robonomics (`true` or `false`);
+- `ROBONOMICS_SEED` — seed-phrase for Robonomics account.
 
 ## API
 
 For more information about endpoints, data flows and main operations, go to `http://<HOST>:<PORT>/docs`
 
-<details>
-<summary>Endpoints usage examples</summary>
-
-<br>
+Endpoints usage examples:
 
 ### Security
 
@@ -46,59 +70,76 @@ For more information about endpoints, data flows and main operations, go to `htt
 
 - /api/v1/users/me
 
-    GET: Information about user, using bearer token 
+    GET: Information about user, using bearer token
 
     Example: `{"username":"username", "is_admin": false}`
 
 ### Database wrapper
 
-> You need to log in and get a Bearer token to make API requests. 
+> You need to log in and get a Bearer token to make API requests.
 
-- /api/v1/employees
+- `/api/v1/employees`
 
-    GET: List of all employees and their overall count. 
-    
-    > Query params: If you want to get first 20 employees, make GET /api/v1/employees?start=0&limit=20. Start (*0* by default), Limit (*None* by default). To get all employees use GET /api/v1/employees without any params. 
+  GET: List of all employees and their overall count.
 
-    > Note: "count" field does not depend on requested data
+  Query params: If you want to get first 20 employees, make GET `/api/v1/employees?start=0&limit=20`. Start (*0* by default), Limit (*None* by default). To get all employees use GET `/api/v1/employees` without any params.
 
-    Example: `{"count": 1, "data": [{"rfid_card_id": "123", "name": "My Name", "position": "Engineer"}]}`
+  > Note: "count" field does not depend on requested data
 
-- /api/v1/employees/<rfid_card_id:string>
+  Example:
+  ```
+  {"count": 1, "data": [{"rfid_card_id": "123", "name": "My Name", "position": "Engineer"}]}
+  ```
 
-    GET: Information about concrete employee by his rfid_card_id
+- `/api/v1/employees/<rfid_card_id:string>`
 
-    Example: GET on /api/v1/employees/**123** returns `{"rfid_card_id": "123", "name": "My Name", "position": "Engineer"}`
+  GET: Information about concrete employee by his rfid_card_id.
 
-- /api/v1/passports
+  Example: GET on ``/api/v1/employees/123`` returns:
+  ```
+  {"rfid_card_id": "123", "name": "My Name", "position": "Engineer"}
+  ```
 
-    GET: List of all passports and their overall count.
+- `/api/v1/passports`
 
-    > Query params: If you want to get first 20 passports, make GET /api/v1/passports?start=0&limit=20. Start (*0* by default), Limit (*None* by default). To get all passports use GET /api/v1/passports without any params. 
+  GET: List of all passports and their overall count.
 
-    > Note: "count" field does not depend on requested data
+  Query params: If you want to get first 20 passports, make GET `/api/v1/passports?start=0&limit=20`. Start (*0* by default), Limit (*None* by default). To get all passports use GET `/api/v1/passports` without any params.
 
-    Example: `{"count": 1, "data": [{"model": "cryptoanalyzer", "uuid": "zxcqwer123","internal_id": "1","passport_short_url": "example.com","is_in_db": true}]}`
+  > Note: "count" field does not depend on requested data
 
-- /api/v1/passports/<internal_id:string>
+  Example:
+  ```
+  {"count": 1, "data": [{"model": "cryptoanalyzer", "uuid": "zxcqwer123","internal_id": "1","passport_short_url": "example.com","is_in_db": true}]}
+  ```
 
-    GET: Information about passport by its internal_id
+- `/api/v1/passports/<internal_id:string>`
 
-    Example: GET on /api/v1/passports/**1** returns `{"model": "cryptoanalyzer", "uuid": "zxcqwer123","internal_id": "1","passport_short_url": "example.com","is_in_db": true}`
+  GET: Information about passport by its internal_id.
 
-- /api/v1/stages
+  Example: GET on ``/api/v1/passports/1`` returns:
+  ```
+  {"model": "cryptoanalyzer", "uuid": "zxcqwer123","internal_id": "1","passport_short_url": "example.com","is_in_db": true}
+  ```
 
-    GET: List of all stages and their overall count.
+- `/api/v1/stages`
 
-    > Query params: If you want to get first 20 passports, make GET /api/v1/stages?start=0&limit=20. Start (*0* by default), Limit (*None* by default). To get all stages use GET /api/v1/stages without any params. 
+  GET: List of all stages and their overall count.
 
-    > Note: "count" field does not depend on requested data
+  Query params: If you want to get first 20 passports, make GET `/api/v1/stages?start=0&limit=20`. Start (*0* by default), Limit (*None* by default). To get all stages use GET `/api/v1/stages` without any params.
 
-    Example: `{"count": 1, "data": [{"name": "stage","employee_name": "hashed_employee","parent_unit_uuid": "kldsjl1","session_start_time": "03-09-2021 17:04:05","session_end_time": "03-09-2021 17:04:07","video_hashes":["some_ipfs_hashes"],"additional_info": {}, "id": "zxc1", "is_in_db": true,"creation_time": "2021-09-03T14:04:05.360000"}]}`
+  > Note: "count" field does not depend on requested data
 
-- /api/v1/stages/<stage_id:string>
+  Example:
+  ```
+  {"count": 1, "data": [{"name": "stage","employee_name": "hashed_employee","parent_unit_uuid": "kldsjl1","session_start_time": "03-09-2021 17:04:05","session_end_time": "03-09-2021 17:04:07","video_hashes":["some_ipfs_hashes"],"additional_info": {}, "id": "zxc1", "is_in_db": true,"creation_time": "2021-09-03T14:04:05.360000"}]}
+  ```
 
-    GET: Information about passport by its stage_id
+- `/api/v1/stages/<stage_id:string>`
 
-    Example: GET on /api/v1/stages/zxc1 returns `{"name": "stage","employee_name": "hashed_employee","parent_unit_uuid": "kldsjl1","session_start_time": "03-09-2021 17:04:05","session_end_time": "03-09-2021 17:04:07","video_hashes":["some_ipfs_hashes"],"additional_info": {}, "id": "zxc1", "is_in_db": true,"creation_time": "2021-09-03T14:04:05.360000"}`
-</details>
+  GET: Information about passport by its stage_id.
+
+  Example: GET on `/api/v1/stages/zxc1` returns:
+  ```
+  {"name": "stage","employee_name": "hashed_employee","parent_unit_uuid": "kldsjl1","session_start_time": "03-09-2021 17:04:05","session_end_time": "03-09-2021 17:04:07","video_hashes":["some_ipfs_hashes"],"additional_info": {}, "id": "zxc1", "is_in_db": true,"creation_time": "2021-09-03T14:04:05.360000"}
+  ```
